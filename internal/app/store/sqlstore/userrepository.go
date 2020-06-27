@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"database/sql"
 
+	"github.com/PhilippZhulev/delta/internal/app/helpers"
 	"github.com/PhilippZhulev/delta/internal/app/model"
 	"github.com/PhilippZhulev/delta/internal/app/store"
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 // UserRepository ...
 //Ссылка на хранилище
 type UserRepository struct {
+	hesh helpers.Hesh
 	store *Store
 }
 
@@ -28,6 +30,7 @@ func (r *UserRepository) Create(u *model.User) error {
 	// Заполнить допданные
 	u.UUID = uuid.New().String()
 	u.Role = "usr_default"
+	u.EncryptedPassword = r.hesh.HashPassword(u.EncryptedPassword)
 
 	// Запрос в бд
 	return r.store.db.QueryRow(
@@ -122,4 +125,33 @@ func (r *UserRepository) Replace(u *model.User) error {
 
 	// Запрос в бд
 	return err
+}
+
+// ChangePassword ...
+// Изменить пароль пользователя 
+func (r *UserRepository) ChangePassword(u *model.User) error {
+
+	err := u.ValidatePassword(u.EncryptedPassword, u.СonfirmEncryptedPassword)
+	if err != nil {
+		return err
+	}
+
+	// Заполнить доп данные
+	u.EncryptedPassword = r.hesh.HashPassword(u.EncryptedPassword)
+
+	// Запрос в бд
+	_, err = r.store.db.Exec(
+		`
+		UPDATE users
+		SET encrypted_password = $2
+		WHERE login_name = $1
+		`,
+		u.Login,
+		u.EncryptedPassword,
+	)
+
+	u.Sanitize()
+
+	return err
+
 }
