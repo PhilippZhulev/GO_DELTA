@@ -4,16 +4,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/PhilippZhulev/delta/internal/app/confiiguration"
+	"github.com/PhilippZhulev/delta/internal/app/handler"
+	"github.com/PhilippZhulev/delta/internal/app/helpers"
+	"github.com/PhilippZhulev/delta/internal/app/store"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/jwtauth"
 	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
-
-	"github.com/PhilippZhulev/delta/internal/app/confiiguration"
-	"github.com/PhilippZhulev/delta/internal/app/handler"
-	"github.com/PhilippZhulev/delta/internal/app/helpers"
-	"github.com/PhilippZhulev/delta/internal/app/store"
 )
 
 // Протокол сервера
@@ -82,6 +81,9 @@ func (s *server) configureMiddleware() {
 			//Изменить пользователя
 			route.Put("/", s.user.HandleUserReplace(s.store))  
 
+			//Изменить пользователя
+			route.Put("/password", s.user.HandleChangePassword(s.store, s.sessionStore))  
+
 			// Удалить пользователя
 			route.Delete("/{id}", s.user.HandleRemoveUser(s.store)) 
 
@@ -90,7 +92,6 @@ func (s *server) configureMiddleware() {
 
 			// Получить списое пользоватей
 			route.Get("/list/{limit}/{offset}", s.user.HandleUserList(s.store)) 
-
     })
 
 	})

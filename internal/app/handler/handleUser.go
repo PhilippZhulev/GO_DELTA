@@ -11,7 +11,6 @@ import (
 	"github.com/PhilippZhulev/delta/internal/app/store"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
-
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -26,7 +25,6 @@ var (
 // Протокол аунтификации
 type InitUser struct {
 	respond *helpers.Respond
-	hesh helpers.Hesh
 	store  store.Store
 }
 
@@ -56,10 +54,9 @@ func (iu *InitUser) HandleUserCreate(
 		}
 
 		// Создать запись в store
-		passhash := iu.hesh.HashPassword(req.Password)
 		u := &model.User{
 			Login:    req.Login,
-			EncryptedPassword: passhash,
+			EncryptedPassword: req.Password,
 			JobCode: req.JobCode,
 			Name: req.Name,
 			Email: req.Email,
@@ -284,17 +281,22 @@ func (iu *InitUser) HandleUserReplace(store store.Store) http.HandlerFunc {
 
 //HandleChangePassword ...
 //Измененить пароль пользователя
-func (iu *InitUser) HandleChangePassword(store store.Store) http.HandlerFunc {
+func (iu *InitUser) HandleChangePassword(
+	store store.Store, 
+	sesStore sessions.Store,
+) http.HandlerFunc {
 
 	// Структура запроса
 	type request struct {
-		ID string `json:"name"`
 		Password string  `json:"password"`
-		NewPassword string  `json:"new_password"`
-		СonfirmPassword string `json:"confirm_password"`
+		EncryptedPassword string  `json:"new"`
+		СonfirmEncryptedPassword string `json:"confirm"`
 	}
 
+	type response struct {}
+
 	return func (w http.ResponseWriter, r *http.Request)  {
+
 		// Парсить запрос
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
@@ -302,6 +304,34 @@ func (iu *InitUser) HandleChangePassword(store store.Store) http.HandlerFunc {
 			return
 		}
 
+		// Получить сессию
+		session, err := sesStore.Get(r, "delta_session")
+		if err != nil {
+			iu.respond.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
 
+		// Map to struct
+		u := &model.User{}
+		err = mapstructure.Decode(session.Values, &u)
+		if err != nil {
+			iu.respond.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		// Заполнить данные пароля
+		u.Password = req.СonfirmEncryptedPassword
+		u.EncryptedPassword = req.EncryptedPassword
+		u.СonfirmEncryptedPassword = req.СonfirmEncryptedPassword
+
+	// Искать юзера
+		err = store.User().ChangePassword(u)
+		if err != nil {
+			iu.respond.Error(w, r, http.StatusBadRequest, errIncorrectEmailOrPassword)
+			return
+		}
+		
+		// Если все ок отправить ответ
+		iu.respond.Done(w, r, http.StatusOK, &response{}, "Password is changed")
 	}
 }
