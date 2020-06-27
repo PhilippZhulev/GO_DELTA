@@ -1,0 +1,7 @@
+[1;33mDelta api started...[0m
+0xc000316059
+2020/06/22 03:35:02 - - - - - - - - - - - - - - -
+2020/06/22 03:35:02 daemon started
+2020/06/22 03:35:02 listen tcp :5000: bind: address already in use
+[1;33mDelta api started...[0m
+2020/06/22 03:36:16 listen tcp :5000: bind: address already in use
