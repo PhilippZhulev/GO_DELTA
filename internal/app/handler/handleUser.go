@@ -69,9 +69,6 @@ func (iu *InitUser) HandleUserCreate(
 			return
 		}
 
-		// Очистить пароль
-		u.Sanitize()
-
 		// Если все ок отправить ответ
 		iu.respond.Done(w, r, http.StatusCreated, u, "User created")
 	}
@@ -324,7 +321,7 @@ func (iu *InitUser) HandleChangePassword(
 		u.EncryptedPassword = req.EncryptedPassword
 		u.СonfirmEncryptedPassword = req.СonfirmEncryptedPassword
 
-	// Искать юзера
+		// Искать юзера
 		err = store.User().ChangePassword(u)
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, errIncorrectEmailOrPassword)

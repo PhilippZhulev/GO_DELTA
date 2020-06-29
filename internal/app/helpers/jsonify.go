@@ -8,6 +8,7 @@ import (
 )
 
 // Jsonify ...
+// Преобразователь json в map
 func Jsonify(rows *sql.Rows) ([]string) {
 	columns, err := rows.Columns()
 	if err != nil {
