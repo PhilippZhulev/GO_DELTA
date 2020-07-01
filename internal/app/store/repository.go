@@ -16,3 +16,9 @@ type UserRepository interface {
 	Replace(*model.User) error
 	ChangePassword(*model.User) error
 }
+
+// TestRepository ...
+// Репозиторий для тестирования
+type TestRepository interface {
+	GetTestRows() (*sql.Rows, error)
+}

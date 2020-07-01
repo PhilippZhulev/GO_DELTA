@@ -3,7 +3,6 @@ package model
 import (
 	"github.com/PhilippZhulev/delta/internal/app/validate"
 	validation "github.com/go-ozzo/ozzo-validation"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // User ...
@@ -12,7 +11,7 @@ type User struct {
 	Login                    string `json:"login"`
 	Password                 string `json:"password,omitempty"`
 	EncryptedPassword 			 string `json:"-"`
-	СonfirmEncryptedPassword string `json:"confirm_password"`
+	СonfirmEncryptedPassword string `json:"confirm_password,omitempty"`
 	JobCode 					       string `json:"jobCode"`
 	Email 						       string `json:"email"`
 	Phone 									 string `json:"phone"`
@@ -53,38 +52,10 @@ func (u *User) ValidatePassword(first, last string) error {
 	return nil
 }
 
-// BeforeCreate ...
-// Перед созданием пользователя
-func (u *User) BeforeCreate() error {
-	if len(u.Password) > 0 {
-		enc, err := encryptString(u.Password)
-		if err != nil {
-			return err
-		}
-
-		u.EncryptedPassword = enc
-	}
-
-	return nil
-}
-
 // Sanitize ...
 // Очистка пароля
 func (u *User) Sanitize() {
 	u.Password = ""
+	u.EncryptedPassword = ""
 }
 
-// ComparePassword ...
-// Хеширование
-func (u *User) ComparePassword(password string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password)) == nil
-}
-
-func encryptString(s string) (string, error) {
-	b, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.MinCost)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
-}

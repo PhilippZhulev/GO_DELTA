@@ -23,14 +23,13 @@ func (r *UserRepository) Create(u *model.User) error {
 		return err
 	}
 
-	if err := u.BeforeCreate(); err != nil {
-		return err
-	}
-
 	// Заполнить допданные
 	u.UUID = uuid.New().String()
 	u.Role = "usr_default"
 	u.EncryptedPassword = r.hesh.HashPassword(u.EncryptedPassword)
+
+	// очистить пароль
+	defer u.Sanitize()
 
 	// Запрос в бд
 	return r.store.db.QueryRow(
