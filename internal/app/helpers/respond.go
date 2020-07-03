@@ -36,9 +36,9 @@ func (h *Respond) Done(w http.ResponseWriter, r *http.Request, code int, data in
 
 // ParseDone ...
 // Ответ сервера c массивом
-func (h *Respond) ParseDone(w http.ResponseWriter, r *http.Request, code int, data []string, mess string) {
+func (h *Respond) ParseDone(w http.ResponseWriter, r *http.Request, code int, data string, mess string) {
 	result := `{"data": ${data}, "msg": "${mess}" }`
-	result = strings.ReplaceAll(result, "${data}", strings.Join(data, ""))
+	result = strings.ReplaceAll(result, "${data}", data)
 	result = strings.ReplaceAll(result, "${mess}", mess)
 
 	w.WriteHeader(code)

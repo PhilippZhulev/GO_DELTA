@@ -12,12 +12,23 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 	"github.com/mitchellh/mapstructure"
+	"github.com/sethvargo/go-password/password"
 )
 
-
+//Ошибки
 var (
-	// Ошибка пегинации
 	errPagination = errors.New("Page does not exist")
+)
+
+//Статусы
+var (
+	userCreated = "User created"
+	userRemoved = "User removed"
+	sessionReceived = "Session received"
+	userListReceived = "User list received"
+	userReplace = "User replace"
+	changePassword = "Password is changed"
+	resetPassword = "Password is reset"
 )
 
 
@@ -70,7 +81,7 @@ func (iu *InitUser) HandleUserCreate(
 		}
 
 		// Если все ок отправить ответ
-		iu.respond.Done(w, r, http.StatusCreated, u, "User created")
+		iu.respond.Done(w, r, http.StatusCreated, u, userCreated)
 	}
 }
 
@@ -93,7 +104,7 @@ func (iu *InitUser) HandleRemoveUser(store store.Store) http.HandlerFunc {
 		}
 
 		// Если все ок отправить ответ
-		iu.respond.Done(w, r, http.StatusOK, &respond{}, "User removed")
+		iu.respond.Done(w, r, http.StatusOK, &respond{}, userRemoved)
 	}
 }
 
@@ -131,7 +142,7 @@ func (iu *InitUser) HandleUserSession(
 		}
 
 		// Если все ок отправить ответ
-		iu.respond.Done(w, r, http.StatusOK, res, "Session received")
+		iu.respond.Done(w, r, http.StatusOK, res, sessionReceived)
 	}
 }
 
@@ -214,7 +225,7 @@ func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
 		}
 
 		// Если все ок отправить ответ
-		iu.respond.Done(w, r, http.StatusOK, res, "User list received")
+		iu.respond.Done(w, r, http.StatusOK, res, userListReceived)
 	}
 }
 
@@ -272,7 +283,7 @@ func (iu *InitUser) HandleUserReplace(store store.Store) http.HandlerFunc {
 		}
 
 		// Если все ок отправить ответ
-		iu.respond.Done(w, r, http.StatusOK, res, "User replace")
+		iu.respond.Done(w, r, http.StatusOK, res, userReplace)
 	}
 }
 
@@ -321,14 +332,71 @@ func (iu *InitUser) HandleChangePassword(
 		u.EncryptedPassword = req.EncryptedPassword
 		u.СonfirmEncryptedPassword = req.СonfirmEncryptedPassword
 
-		// Искать юзера
+		// Запросить изменение
 		err = store.User().ChangePassword(u)
 		if err != nil {
-			iu.respond.Error(w, r, http.StatusBadRequest, errIncorrectEmailOrPassword)
+			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		
 		// Если все ок отправить ответ
-		iu.respond.Done(w, r, http.StatusOK, &response{}, "Password is changed")
+		iu.respond.Done(w, r, http.StatusOK, &response{}, changePassword)
+	}
+}
+
+//HandleResetPassword ...
+// Сбросить пароль пользователя
+func (iu *InitUser) HandleResetPassword(
+	store store.Store, 
+	sesStore sessions.Store,
+) http.HandlerFunc {
+
+	// Структура запроса
+	type request struct {
+		Login string  `json:"login"`
+	}
+
+	type response struct {
+		Login string  `json:"login"`
+		NewPassword string  `json:"newPassword"`
+	}
+
+	return func (w http.ResponseWriter, r *http.Request)  {
+
+		// Парсить запрос
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			iu.respond.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		// Сгенерировать пароль
+		pass, err := password.Generate(8, 3, 0, false, true)
+		if err != nil {
+			iu.respond.Error(w, r, http.StatusBadGateway, err)
+			return
+		}
+
+		// Заполнить данные пароля
+		u := &model.User{}
+		u.Login = req.Login
+		u.EncryptedPassword = pass
+		u.СonfirmEncryptedPassword = pass
+
+		// Запросить изменение
+		err = store.User().ChangePassword(u)
+		if err != nil {
+			iu.respond.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		// Создать ответ`
+		res := &response{
+			Login: req.Login,
+			NewPassword: pass,
+		}
+		
+		// Если все ок отправить ответ
+		iu.respond.Done(w, r, http.StatusOK, res, resetPassword)
 	}
 }

@@ -26,6 +26,7 @@ type server struct {
 	
 	user 				 handler.InitUser
 	auth 				 handler.InitAuth
+	dispatch 		 handler.InitDispatch
 }
 
 // Создать новый сервер
@@ -72,6 +73,13 @@ func (s *server) configureMiddleware() {
 		router.Use(jwtauth.Verifier(s.tokenAuth))
 		router.Use(s.authenticator)
 
+		// Диспатчер приложений
+    router.Route("/dispatch", func(route chi.Router) {
+
+			route.Post("/{port}/{param}/{data}", s.dispatch.HandleDispatch(s.sessionStore))    
+
+    })
+
 		// Запросы пользователя
     router.Route("/api/v1/user", func(route chi.Router) {
 
@@ -81,8 +89,11 @@ func (s *server) configureMiddleware() {
 			//Изменить пользователя
 			route.Put("/", s.user.HandleUserReplace(s.store))  
 
-			//Изменить пользователя
+			//Изменить пароль пользователя
 			route.Put("/password", s.user.HandleChangePassword(s.store, s.sessionStore))  
+
+			//Сбросить пользователя
+			route.Patch("/password", s.user.HandleResetPassword(s.store, s.sessionStore))  
 
 			// Удалить пользователя
 			route.Delete("/{id}", s.user.HandleRemoveUser(s.store)) 
@@ -90,7 +101,7 @@ func (s *server) configureMiddleware() {
 			// Создание пользователя
 			route.Get("/", s.user.HandleUserSession(s.sessionStore))   
 
-			// Получить списое пользоватей
+			// Получить список пользоватей
 			route.Get("/list/{limit}/{offset}", s.user.HandleUserList(s.store)) 
     })
 
@@ -100,11 +111,9 @@ func (s *server) configureMiddleware() {
 	s.router.Group(func(router chi.Router) {
 		// Запросы login
     router.Route("/api/v1/auth", func(route chi.Router) {
-
 			// login
-			route.Post("/login", s.auth.HandleLogin(s.store, s.sessionStore, s.tokenAuth))    
-
-    })
+			route.Post("/login", s.auth.HandleLogin(s.store, s.sessionStore, s.tokenAuth))      
+		})
 	})
 }
 

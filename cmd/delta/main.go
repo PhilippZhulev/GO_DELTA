@@ -37,11 +37,9 @@ func serve() {
 		log.Fatal(err)
 	}
 
-	srv := delta.Start(config); 
-
-	err = srv.Shutdown(nil)
+	err = delta.Start(config); 
 	if err != nil {
-			log.Fatal(err)
+		log.Fatal(err)
 	}
 }
 
