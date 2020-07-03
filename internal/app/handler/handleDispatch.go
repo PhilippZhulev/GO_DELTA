@@ -25,7 +25,7 @@ func (idch *InitDispatch) HandleDispatch(
 	sesStore sessions.Store,
 ) http.HandlerFunc {
 
-	//Ответ
+	// Ответ
 	type Result struct {
 		Data string
 		Code int
@@ -46,6 +46,7 @@ func (idch *InitDispatch) HandleDispatch(
 		Query url.Values
 		Body string
 		URL *url.URL
+		Headers http.Header
 	}
 
 	return func (w http.ResponseWriter, r *http.Request) {
@@ -97,6 +98,7 @@ func (idch *InitDispatch) HandleDispatch(
 			Query: r.URL.Query(),
 			Body: string(body),
 			URL: r.URL,
+			Headers: r.Header,
 		}
 
 		// Отправить параметры в handler sub.app

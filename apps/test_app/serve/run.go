@@ -23,6 +23,7 @@ type Request struct {
 	Query url.Values
 	Body string
 	URL *url.URL
+	Headers http.Header
 }
 
 // Writer ...
