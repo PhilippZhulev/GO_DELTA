@@ -51,10 +51,13 @@ func (idch *InitDispatch) HandleDispatch(
 	return func (w http.ResponseWriter, r *http.Request) {
 
 		// Параметры ссылки
+		// -port (port - id) sub.app
+		// -param параметор url для индификации в sub.app
 		port := chi.URLParam(r, "port")
 		p := chi.URLParam(r, "param")
 
 		// Открть соединение rpc с дочерним сервером
+		// В качестве порта взять параметр port
 		client, err := rpc.DialHTTP("tcp", ":" + port)
 		if err != nil {
 			idch.respond.Error(w, r, http.StatusBadRequest, err)
