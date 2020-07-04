@@ -47,6 +47,7 @@ func (idch *InitDispatch) HandleDispatch(
 		Body string
 		URL *url.URL
 		Headers http.Header
+		Context map[interface {}]interface {}
 	}
 
 	return func (w http.ResponseWriter, r *http.Request) {
@@ -88,6 +89,9 @@ func (idch *InitDispatch) HandleDispatch(
 			return
 		}
 
+		//Созать мапу для контекста
+		con := make(map[interface{}]interface{})
+
 		// Аргументы для передачи sub.app
 		// передает рание получинные параметры запроса
 		args := &Args{
@@ -99,6 +103,7 @@ func (idch *InitDispatch) HandleDispatch(
 			Body: string(body),
 			URL: r.URL,
 			Headers: r.Header,
+			Context: con,
 		}
 
 		// Отправить параметры в handler sub.app

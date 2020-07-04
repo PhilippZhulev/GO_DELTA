@@ -18,11 +18,22 @@ type respond struct {
 		Session interface{} `json:"session"`
 		Query string `json:"query"`
 		Respond string `json:"respond"`
+		Context interface{} `json:"context"`
+}
+
+// Тестоввый промежуточный обработчик
+func middleTest(r *serve.Request, w *serve.Writer) {
+		r.Context["test"] = "test context success!"
 }
 
 // Handler ...
 // Пример запроса в delta
 func (d *Delta) Handler(r serve.Request, w *serve.Writer) error {
+
+	// Добавить промежуточный обработчик
+	r.Use(w, middleTest);
+
+	// Инициализировать метод
 	post := serve.Method{"POST"}
 
 	// Создать обработчик
@@ -34,6 +45,7 @@ func (d *Delta) Handler(r serve.Request, w *serve.Writer) error {
 			Session: r.Session["login"],
 			Query: r.Query.Get("name"),
 			Respond: r.Params["data"] + "-pong",
+			Context: r.Context["test"],
 		}
 
 		// Структурв в JSON
