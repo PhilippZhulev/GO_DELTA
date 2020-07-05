@@ -21,10 +21,6 @@ type respond struct {
 		Context interface{} `json:"context"`
 }
 
-// Тестоввый промежуточный обработчик
-func middleTest(r *serve.Request, w *serve.Writer) {
-		r.Context["test"] = "test context success!"
-}
 
 // Handler ...
 // Пример запроса в delta
@@ -63,6 +59,11 @@ func (d *Delta) Handler(r serve.Request, w *serve.Writer) error {
 	})
 
 	return nil
+}
+
+// Тестоввый промежуточный обработчик
+func middleTest(r *serve.Request, w *serve.Writer) {
+		r.Context["test"] = "test context success!"
 }
 
 func main() {
