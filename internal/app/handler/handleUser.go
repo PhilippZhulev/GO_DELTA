@@ -301,6 +301,7 @@ func (iu *InitUser) HandleChangePassword(
 		СonfirmEncryptedPassword string `json:"confirm"`
 	}
 
+	// Ответ
 	type response struct {}
 
 	return func (w http.ResponseWriter, r *http.Request)  {

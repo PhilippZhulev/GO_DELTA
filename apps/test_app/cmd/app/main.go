@@ -21,7 +21,6 @@ type respond struct {
 		Context interface{} `json:"context"`
 }
 
-
 // Handler ...
 // Пример запроса в delta
 func (d *Delta) Handler(r serve.Request, w *serve.Writer) error {

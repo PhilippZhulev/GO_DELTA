@@ -1,6 +1,7 @@
 package delta
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -13,6 +14,11 @@ import (
 	"github.com/go-chi/jwtauth"
 	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
+)
+
+//Ошибки
+var (
+	errNoSession = errors.New("session does not exist")
 )
 
 // Протокол сервера
@@ -71,7 +77,7 @@ func (s *server) configureMiddleware() {
 
 		// jwt
 		router.Use(jwtauth.Verifier(s.tokenAuth))
-		router.Use(s.authenticator)
+		router.Use(s.authenticator(s.sessionStore))
 
 		// Диспатчер приложений
     router.Route("/dispatch", func(route chi.Router) {
@@ -103,41 +109,63 @@ func (s *server) configureMiddleware() {
 
 			// Получить список пользоватей
 			route.Get("/list/{limit}/{offset}", s.user.HandleUserList(s.store)) 
-    })
+		})
+		
+		// Запросы auth
+		router.Route("/api/v1/auth", func(route chi.Router) {
+			// logout
+			route.Get("/logout", s.auth.HandleLogout(s.store, s.sessionStore, s.tokenAuth))      
+		})
 
 	})
 
 	// Открытый сегмент
 	s.router.Group(func(router chi.Router) {
-		// Запросы login
-    router.Route("/api/v1/auth", func(route chi.Router) {
+		// Запросы auth
+    router.Route("/api/v1/auth/login", func(route chi.Router) {
 			// login
-			route.Post("/login", s.auth.HandleLogin(s.store, s.sessionStore, s.tokenAuth))      
+			route.Post("/", s.auth.HandleLogin(s.store, s.sessionStore, s.tokenAuth))      
 		})
 	})
 }
 
 // Проверка jwt токена
 // Промежуточное программное обеспеченеи
-func (s server) authenticator(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, _, err := jwtauth.FromContext(r.Context())
+func (s server) authenticator(sesStore sessions.Store) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token, _, err := jwtauth.FromContext(r.Context())
 
-		// Если какая либо ошибка
-		if err != nil {
-			s.respond.Error(w, r, http.StatusUnauthorized , err)
-			return
-		}
+			// Если какая либо ошибка
+			if err != nil {
+				s.respond.Error(w, r, http.StatusUnauthorized , err)
+				return
+			}
 
-		// Если ошибка валидации
-		if token == nil || !token.Valid {
-			s.respond.Error(w, r, http.StatusUnauthorized , err)
-			return
-		}
+			// Если ошибка валидации
+			if token == nil || !token.Valid {
+				s.respond.Error(w, r, http.StatusUnauthorized , err)
+				return
+			}
 
-		// Продолжить обработку
-		next.ServeHTTP(w, r)
-	})
+			// Получить сессию
+			session, err := sesStore.Get(r, "delta_session")
+			if err != nil {
+				s.respond.Error(w, r, http.StatusBadRequest, err)
+				return
+			}
+
+			// Проверить сессию
+			uuid := session.Values["uuid"]
+			if uuid == nil {
+				s.respond.Error(w, r, http.StatusUnauthorized , errNoSession)
+				return
+			}
+
+			// Продолжить обработку
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 
