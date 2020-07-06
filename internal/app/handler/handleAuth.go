@@ -15,11 +15,15 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-//Статусы
+//Ошибки
 var (
 	errIncorrectEmailOrPassword = errors.New("incorrect email or password")
 	errNotAuthenticated         = errors.New("not authenticated")
-	successLogin                = "Login success"
+)
+
+//Статусы
+var (
+	successLogin = "Login success"
 )
 
 // InitAuth ...

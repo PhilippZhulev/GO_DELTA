@@ -19,10 +19,13 @@ func TestHandler(t *testing.T) {
 		Msg string
 	}
 
-	const AUTH_DATA string = "Wmh1bGV2LUZBOjFoYjY3M3Zh"
+	const AUTH_DATA string = "Wmh1bGV2LUZBOjFoYjY3M1Zh"
 
-	var token string
-	var id int
+	var (
+		token string
+		id int
+		newPass string
+	)
 
 	var _ = Describe("delta server test", func() {
         
@@ -234,6 +237,58 @@ func TestHandler(t *testing.T) {
 						form := strings.NewReader(`
 						{
 								"password": "1hb673va1",
+								"new": "1hb673va",
+								"confirm": "1hb673va"
+						}
+						`)
+						client := &http.Client{}
+						req, err := http.NewRequest("PUT", "http://localhost:4444/api/v1/user/password?jwt=" + token, form)
+						resp, err := client.Do(req)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+						data := &response{}
+						err = json.NewDecoder(resp.Body).Decode(data)
+						resp.Body.Close()
+
+						Expect(data.Msg).To(Equal("Password is changed"))
+				})
+		})
+
+		Context("Reset user password", func() {
+
+				type resData struct {
+					Login string
+					NewPassword string
+				}
+
+				It("valid case, reset", func() {
+						form := strings.NewReader(`
+						{
+								"login": "Zhulev-FA"
+						}
+						`)
+						client := &http.Client{}
+						req, err := http.NewRequest("POST", "http://localhost:4444/api/v1/user/password?jwt=" + token, form)
+						resp, err := client.Do(req)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+						rs := &resData{}
+						data := &response{Data: rs}
+						err = json.NewDecoder(resp.Body).Decode(data)
+						resp.Body.Close()
+
+						Expect(data.Msg).To(Equal("Password is reset"))
+						Expect(rs.Login).To(Equal("Zhulev-FA"))
+						Expect(len(rs.NewPassword)).To(Equal(8))
+						newPass = rs.NewPassword
+				})
+
+				It("valid case, change last", func() {
+						form := strings.NewReader(`
+						{
+								"password": "`+ newPass +`",
 								"new": "1hb673va",
 								"confirm": "1hb673va"
 						}
