@@ -89,7 +89,7 @@ func (idch *InitDispatch) HandleDispatch(
 			return
 		}
 
-		//Созать мапу для контекста
+		// Созать мапу для контекста
 		con := make(map[interface{}]interface{})
 
 		// Аргументы для передачи sub.app

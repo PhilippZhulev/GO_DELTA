@@ -24,6 +24,7 @@ var (
 //Статусы
 var (
 	successLogin = "Login success"
+	successLogout = "Logout success"
 )
 
 // InitAuth ...
@@ -82,7 +83,7 @@ func (ia InitAuth) HandleLogin(
 		}
 
 		// Получить сессию
-		session, _ := sesStore.Get(r, "delta_session")
+		session, err := sesStore.Get(r, "delta_session")
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
@@ -117,5 +118,36 @@ func (ia InitAuth) HandleLogin(
 		// Если все успешно дать ответ
 		// отдает токен
 		ia.respond.Done(w, r, http.StatusOK, &response{tokenString}, successLogin)
+	}
+}
+
+// HandleLogout ...
+// Выйти из системы
+func (ia InitAuth) HandleLogout(
+	store store.Store, 
+	sesStore sessions.Store,
+	tokenAuth *jwtauth.JWTAuth,
+) http.HandlerFunc {
+	return func (w http.ResponseWriter, r *http.Request) {
+
+		// Получить сессию
+		session, err := sesStore.Get(r, "delta_session")
+		if err != nil {
+			ia.respond.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		// Удалить сессию
+		session.Options.MaxAge = -1
+		err = session.Save(r, w)
+		if err != nil {
+			ia.respond.Error(w, r, http.StatusInternalServerError, err)
+		}
+
+		// Пустой data
+		var empty []string
+
+		// Если все успешно дать ответ
+		ia.respond.Done(w, r, http.StatusOK, empty, successLogout)
 	}
 }

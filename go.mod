@@ -16,7 +16,6 @@ require (
 	//github.com/gorilla/mux v1.7.3
 	//github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
-	github.com/haisum/rpcexample v0.0.0-20151013205443-7d034ca95162
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/lib/pq v1.2.0
 	github.com/mitchellh/mapstructure v1.3.2
