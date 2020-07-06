@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/sessions"
 )
 
 // Respond ...
@@ -43,4 +45,12 @@ func (h *Respond) ParseDone(w http.ResponseWriter, r *http.Request, code int, da
 
 	w.WriteHeader(code)
   w.Write([]byte(fmt.Sprintf(result)))
+}
+
+// ClearSession ...
+// Очистка сессии
+func (h *Respond) ClearSession(s *sessions.Session, w http.ResponseWriter, r *http.Request) {
+		// Удалить сессию
+		s.Options.MaxAge = -1
+		_ = s.Save(r, w)
 }

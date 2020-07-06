@@ -136,22 +136,20 @@ func (s server) authenticator(sesStore sessions.Store) func(next http.Handler) h
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, _, err := jwtauth.FromContext(r.Context())
 
+			// Получить сессию
+			session, _ := sesStore.Get(r, "delta_session")
+
 			// Если какая либо ошибка
 			if err != nil {
+				s.respond.ClearSession(session, w, r)
 				s.respond.Error(w, r, http.StatusUnauthorized , err)
 				return
 			}
 
 			// Если ошибка валидации
 			if token == nil || !token.Valid {
+				s.respond.ClearSession(session, w, r)
 				s.respond.Error(w, r, http.StatusUnauthorized , err)
-				return
-			}
-
-			// Получить сессию
-			session, err := sesStore.Get(r, "delta_session")
-			if err != nil {
-				s.respond.Error(w, r, http.StatusBadRequest, err)
 				return
 			}
 
