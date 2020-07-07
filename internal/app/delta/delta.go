@@ -11,7 +11,7 @@ import (
 
 	"github.com/PhilippZhulev/delta/internal/app/confiiguration"
 	"github.com/PhilippZhulev/delta/internal/app/store/sqlstore"
-	"github.com/gorilla/sessions"
+	"github.com/antonlindstrom/pgstore"
 	_ "github.com/lib/pq" // ...
 )
 
@@ -26,9 +26,19 @@ func Start(config *confiiguration.Config) error {
 	}
 	defer db.Close()
 
-	// Создать хранилища
+	// Создать хранилище
 	store := sqlstore.New(db)
-	sessionStore := sessions.NewCookieStore([]byte(config.SessionKey))
+
+	// Создать хранилище сессий
+	sessionStore, err := pgstore.NewPGStore(config.DatabaseURL, []byte(config.SessionKey))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sessionStore.Close()
+	defer sessionStore.StopCleanup(sessionStore.Cleanup(time.Minute * 5))
+
+	// Очистка неактивных сессий
+	go sessionStore.Cleanup(time.Hour * 2)
 
 	// Создать сервер
 	srv := newServer(store, sessionStore, config)

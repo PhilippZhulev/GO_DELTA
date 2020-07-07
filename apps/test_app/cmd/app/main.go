@@ -39,7 +39,7 @@ func (d *Delta) Handler(r serve.Request, w *serve.Writer) error {
 			Name: "test", 
 			Session: r.Session["login"],
 			Query: r.Query.Get("name"),
-			Respond: r.Params["data"] + "-pong",
+			Respond: "pong",
 			Context: r.Context["test"],
 		}
 

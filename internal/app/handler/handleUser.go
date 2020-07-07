@@ -127,7 +127,7 @@ func (iu *InitUser) HandleUserSession(
 	return func (w http.ResponseWriter, r *http.Request) {
 		
 		// Получить сессию
-		session, err := sesStore.Get(r, "delta_session")
+		session, err := sesStore.Get(r, iu.respond.GetUUID(r.Context()))
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
@@ -314,7 +314,7 @@ func (iu *InitUser) HandleChangePassword(
 		}
 
 		// Получить сессию
-		session, err := sesStore.Get(r, "delta_session")
+		session, err := sesStore.Get(r, iu.respond.GetUUID(r.Context()))
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
