@@ -109,6 +109,9 @@ func (s *server) configureMiddleware() {
 
 			// Получить список пользоватей
 			route.Get("/list/{limit}/{offset}", s.user.HandleUserList(s.store)) 
+
+			// Получить список пользоватей (Фильтрация)
+			route.Post("/list/{limit}/{offset}", s.user.HandleUserList(s.store)) 
 		})
 		
 		// Запросы auth

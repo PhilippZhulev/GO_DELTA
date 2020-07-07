@@ -13,6 +13,7 @@ type UserRepository interface {
 	FindByLogin(login string) (*model.User, error)
 	Remove(id string) error
 	GetAllUsers(l, o string) (*sql.Rows, error)
+	GetAllUsersAndFiltring(l, o, value string) (*sql.Rows, error)
 	Replace(*model.User) error
 	ChangePassword(*model.User) error
 }

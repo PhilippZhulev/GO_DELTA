@@ -105,6 +105,18 @@ func (r *UserRepository) GetAllUsers(l, o string) (*sql.Rows, error) {
 	`, l, o)
 }
 
+// GetAllUsersAndFiltring ...
+// Получить пользователей Попараметрам филтрации
+func (r *UserRepository) GetAllUsersAndFiltring(l, o, value string) (*sql.Rows, error) {
+	return r.store.db.Query(`
+		SELECT id, login_name, jobcode, user_name, email, phone, uuid, role 
+		FROM users  
+		WHERE user_name LIKE '`+ value +`%'
+		LIMIT $1 
+		OFFSET $2 * 2
+	`, l, o)
+}
+
 // Replace ...
 // Изменить информацию пользователя
 func (r *UserRepository) Replace(u *model.User) error {

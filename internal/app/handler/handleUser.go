@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -152,14 +153,20 @@ func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
 
 	// Структура элемента выборки
 	type item struct {
-		Name string `json:"name"`
+		ID string `json:"id"`
 		Login string `json:"login"`
 		JobCode string `json:"jobCode"`
+		Name string `json:"name"`
 		Email string `json:"email"`
 		Phone string `json:"phone"`
-		Role string `json:"role"`
 		UUID string `json:"uiid"`
-		ID string `json:"id"`
+		Role string `json:"role"`
+	}
+
+	// Тело запроса
+	// если POST
+	type request struct {
+			Value string `json:"value"`
 	}
 
 	// Данные ответа
@@ -178,8 +185,26 @@ func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
 			o = chi.URLParam(r, "offset")
 		) 
 
+		var (
+			usersRows *sql.Rows
+			err error
+		)
+
 		// Запрос в бд
-		usersRows, err := store.User().GetAllUsers(l, o);
+		if r.Method == "POST" {
+			// Парсить запрос
+			req := &request{}
+			if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+				iu.respond.Error(w, r, http.StatusBadRequest, err)
+				return
+			}
+			// Запрос + фильтрация + пегинация
+			usersRows, err = store.User().GetAllUsersAndFiltring(l, o, req.Value);
+		} else {
+			// Запрос + пегинация
+			usersRows, err = store.User().GetAllUsers(l, o);
+		}
+
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusUnprocessableEntity, err)
 			return
@@ -195,9 +220,9 @@ func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
 				&im.ID, 
 				&im.Login, 
 				&im.JobCode, 
+				&im.Name, 
 				&im.Email, 
 				&im.Phone, 
-				&im.Name, 
 				&im.UUID, 
 				&im.Role,
 			)
