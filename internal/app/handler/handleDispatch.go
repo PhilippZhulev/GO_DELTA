@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-
 // InitDispatch ...
 // Протокол аунтификации
 type InitDispatch struct {
@@ -37,7 +36,8 @@ func (idch *InitDispatch) HandleDispatch(
 		Result Result
 	}
 
-	// Args ...urlParams
+	// Args ...
+	// urlParams
 	type Args struct {
 		Method string
 		Param string
@@ -83,7 +83,7 @@ func (idch *InitDispatch) HandleDispatch(
 		defer r.Body.Close()
 
 		// Получить сессию
-		session, err := sesStore.Get(r, "delta_session")
+		session, err := sesStore.Get(r, idch.respond.GetUUID(r.Context()))
 		if err != nil {
 			idch.respond.Error(w, r, http.StatusBadRequest, err)
 			return

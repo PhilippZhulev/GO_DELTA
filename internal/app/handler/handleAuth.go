@@ -25,7 +25,12 @@ var (
 var (
 	successLogin = "Login success"
 	successLogout = "Logout success"
+	userStateTrue = "User active"
+	userStateFalse = "User not active"
 )
+
+// Пустой data
+var empty []string
 
 // InitAuth ...
 // Протокол аунтификации
@@ -83,7 +88,7 @@ func (ia InitAuth) HandleLogin(
 		}
 
 		// Получить сессию
-		session, err := sesStore.Get(r, "delta_session")
+		session, err := sesStore.Get(r, u.UUID)
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
@@ -131,7 +136,7 @@ func (ia InitAuth) HandleLogout(
 	return func (w http.ResponseWriter, r *http.Request) {
 
 		// Получить сессию
-		session, err := sesStore.Get(r, "delta_session")
+		session, err := sesStore.Get(r, ia.respond.GetUUID(r.Context()))
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -144,10 +149,46 @@ func (ia InitAuth) HandleLogout(
 			ia.respond.Error(w, r, http.StatusInternalServerError, err)
 		}
 
-		// Пустой data
-		var empty []string
-
 		// Если все успешно дать ответ
 		ia.respond.Done(w, r, http.StatusOK, empty, successLogout)
 	}
+}
+
+// CheckActiveSession ...
+// Получить активные сессии
+func (ia InitAuth) CheckActiveSession(store store.Store, sesStore sessions.Store) http.HandlerFunc {
+
+		// Данные запросы
+		type request struct {
+			UUID string `json:"uuid"`
+		}
+
+		// Данные ответа
+		type response struct {
+			Active bool `json:"active"`
+		}
+
+		return func (w http.ResponseWriter, r *http.Request) {
+
+			// Распарсить запрос
+			req := &request{}
+			if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+				ia.respond.Error(w, r, http.StatusBadRequest, err)
+				return
+			}
+
+			// Получить сессию
+			session, err := sesStore.Get(r, req.UUID)
+			if err != nil {
+				ia.respond.Error(w, r, http.StatusInternalServerError, err)
+				return
+			}
+
+			// Отправить состояние
+			if session.Values["id"] != nil {
+				ia.respond.Done(w, r, http.StatusOK, &response{Active: true}, userStateTrue)
+			}else {
+				ia.respond.Done(w, r, http.StatusOK, &response{Active: false}, userStateFalse)
+			}
+		}
 }

@@ -82,8 +82,11 @@ func (s *server) configureMiddleware() {
 		// Диспатчер приложений
     router.Route("/dispatch", func(route chi.Router) {
 
-			route.Post("/{port}/{param}/{data}", s.dispatch.HandleDispatch(s.sessionStore))    
-
+			route.Post("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))    
+			route.Put("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))    
+			route.Get("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))   
+			route.Delete("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))  
+			route.Options("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore)) 
     })
 
 		// Запросы пользователя
@@ -114,7 +117,10 @@ func (s *server) configureMiddleware() {
 		// Запросы auth
 		router.Route("/api/v1/auth", func(route chi.Router) {
 			// logout
-			route.Get("/logout", s.auth.HandleLogout(s.store, s.sessionStore, s.tokenAuth))      
+			route.Get("/logout", s.auth.HandleLogout(s.store, s.sessionStore, s.tokenAuth))     
+			
+			// get active sessions
+			route.Post("/session", s.auth.CheckActiveSession(s.store, s.sessionStore))  
 		})
 
 	})
@@ -134,24 +140,28 @@ func (s *server) configureMiddleware() {
 func (s server) authenticator(sesStore sessions.Store) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token, _, err := jwtauth.FromContext(r.Context())
+
+			// Получить токен
+			token, cl, err := jwtauth.FromContext(r.Context())
+			if err != nil {
+				s.respond.Error(w, r, http.StatusUnauthorized , err)
+				return
+			}
+
+			// Получить сессию
+			session, _ := sesStore.Get(r, cl["uuid"].(string))
 
 			// Если какая либо ошибка
 			if err != nil {
+				s.respond.ClearSession(session, w, r)
 				s.respond.Error(w, r, http.StatusUnauthorized , err)
 				return
 			}
 
 			// Если ошибка валидации
 			if token == nil || !token.Valid {
+				s.respond.ClearSession(session, w, r)
 				s.respond.Error(w, r, http.StatusUnauthorized , err)
-				return
-			}
-
-			// Получить сессию
-			session, err := sesStore.Get(r, "delta_session")
-			if err != nil {
-				s.respond.Error(w, r, http.StatusBadRequest, err)
 				return
 			}
 

@@ -1,10 +1,14 @@
 package helpers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/go-chi/jwtauth"
+	"github.com/gorilla/sessions"
 )
 
 // Respond ...
@@ -43,4 +47,19 @@ func (h *Respond) ParseDone(w http.ResponseWriter, r *http.Request, code int, da
 
 	w.WriteHeader(code)
   w.Write([]byte(fmt.Sprintf(result)))
+}
+
+// ClearSession ...
+// Очистка сессии
+func (h *Respond) ClearSession(s *sessions.Session, w http.ResponseWriter, r *http.Request) {
+		// Удалить сессию
+		s.Options.MaxAge = -1
+		_ = s.Save(r, w)
+}
+
+// GetUUID ...
+// Получить uuid из токена
+func (h *Respond) GetUUID(ctx context.Context) string {
+		_, cl, _ := jwtauth.FromContext(ctx)
+		return cl["uuid"].(string)
 }
