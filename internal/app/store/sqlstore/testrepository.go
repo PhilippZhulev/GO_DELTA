@@ -8,7 +8,7 @@ import (
 
 // TestRepository ...
 type TestRepository struct {
-	hesh helpers.Hesh
+	hesh  helpers.Hesh
 	store *Store
 }
 

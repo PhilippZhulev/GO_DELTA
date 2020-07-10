@@ -23,9 +23,9 @@ var (
 
 //Статусы
 var (
-	successLogin = "Login success"
-	successLogout = "Logout success"
-	userStateTrue = "User active"
+	successLogin   = "Login success"
+	successLogout  = "Logout success"
+	userStateTrue  = "User active"
 	userStateFalse = "User not active"
 )
 
@@ -36,64 +36,56 @@ var empty []string
 // Протокол аунтификации
 type InitAuth struct {
 	respond *helpers.Respond
-	hesh helpers.Hesh
+	hesh    helpers.Hesh
 }
 
 // HandleLogin ...
 // Логин
 func (ia InitAuth) HandleLogin(
-	store store.Store, 
+	store store.Store,
 	sesStore sessions.Store,
 	tokenAuth *jwtauth.JWTAuth,
 ) http.HandlerFunc {
-
 	// Данные запоса
 	type request struct {
 		AuthData string `json:"authData"`
 	}
-
 	// Данные ответа
 	type response struct {
 		Token string `json:"token"`
 	}
 
-	return func (w http.ResponseWriter, r *http.Request) {
-
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Распарсить запрос
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Декодировать auth данные
 		decoded, err := base64.StdEncoding.DecodeString(req.AuthData)
 		if err != nil {
-				ia.respond.Error(w, r, http.StatusBadRequest, err)
-				return
+			ia.respond.Error(w, r, http.StatusBadRequest, err)
+			return
 		}
 		result := strings.Split(string(decoded), ":")
-
 		// Искать юзера
 		u, err := store.User().FindByLogin(result[0])
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, errIncorrectEmailOrPassword)
 			return
 		}
-
 		// Проверить соответстие пароля
 		if !ia.hesh.CheckPasswordHash(result[1], u.EncryptedPassword) {
 			ia.respond.Error(w, r, http.StatusBadRequest, errIncorrectEmailOrPassword)
-			return 
+			return
 		}
-
 		// Получить сессию
 		session, err := sesStore.Get(r, u.UUID)
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Заполнить сессию
 		session.Values["id"] = u.ID
 		session.Values["login"] = u.Login
@@ -103,23 +95,20 @@ func (ia InitAuth) HandleLogin(
 		session.Values["phone"] = u.Phone
 		session.Values["role"] = u.Role
 		session.Values["uuid"] = u.UUID
-
 		// Сохранить сессию
 		err = session.Save(r, w)
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
 		// Сгенерировать токен
 		claims := jwt.MapClaims{"user_id": u.ID, "uuid": u.UUID}
-		jwtauth.SetExpiryIn(claims, 1000 * time.Second)
+		jwtauth.SetExpiryIn(claims, 1000*time.Second)
 		_, tokenString, err := tokenAuth.Encode(claims)
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
 		// Если все успешно дать ответ
 		// отдает токен
 		ia.respond.Done(w, r, http.StatusOK, &response{tokenString}, successLogin)
@@ -129,26 +118,23 @@ func (ia InitAuth) HandleLogin(
 // HandleLogout ...
 // Выйти из системы
 func (ia InitAuth) HandleLogout(
-	store store.Store, 
+	store store.Store,
 	sesStore sessions.Store,
 	tokenAuth *jwtauth.JWTAuth,
 ) http.HandlerFunc {
-	return func (w http.ResponseWriter, r *http.Request) {
-
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Получить сессию
 		session, err := sesStore.Get(r, ia.respond.GetUUID(r.Context()))
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
 		// Удалить сессию
 		session.Options.MaxAge = -1
 		err = session.Save(r, w)
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusInternalServerError, err)
 		}
-
 		// Если все успешно дать ответ
 		ia.respond.Done(w, r, http.StatusOK, empty, successLogout)
 	}
@@ -157,38 +143,33 @@ func (ia InitAuth) HandleLogout(
 // CheckActiveSession ...
 // Получить активные сессии
 func (ia InitAuth) CheckActiveSession(store store.Store, sesStore sessions.Store) http.HandlerFunc {
+	// Данные запросы
+	type request struct {
+		UUID string `json:"uuid"`
+	}
+	// Данные ответа
+	type response struct {
+		Active bool `json:"active"`
+	}
 
-		// Данные запросы
-		type request struct {
-			UUID string `json:"uuid"`
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Распарсить запрос
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			ia.respond.Error(w, r, http.StatusBadRequest, err)
+			return
 		}
-
-		// Данные ответа
-		type response struct {
-			Active bool `json:"active"`
+		// Получить сессию
+		session, err := sesStore.Get(r, req.UUID)
+		if err != nil {
+			ia.respond.Error(w, r, http.StatusInternalServerError, err)
+			return
 		}
-
-		return func (w http.ResponseWriter, r *http.Request) {
-
-			// Распарсить запрос
-			req := &request{}
-			if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-				ia.respond.Error(w, r, http.StatusBadRequest, err)
-				return
-			}
-
-			// Получить сессию
-			session, err := sesStore.Get(r, req.UUID)
-			if err != nil {
-				ia.respond.Error(w, r, http.StatusInternalServerError, err)
-				return
-			}
-
-			// Отправить состояние
-			if session.Values["id"] != nil {
-				ia.respond.Done(w, r, http.StatusOK, &response{Active: true}, userStateTrue)
-			}else {
-				ia.respond.Done(w, r, http.StatusOK, &response{Active: false}, userStateFalse)
-			}
+		// Отправить состояние
+		if session.Values["id"] != nil {
+			ia.respond.Done(w, r, http.StatusOK, &response{Active: true}, userStateTrue)
+		} else {
+			ia.respond.Done(w, r, http.StatusOK, &response{Active: false}, userStateFalse)
 		}
+	}
 }

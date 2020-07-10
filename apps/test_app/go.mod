@@ -1,4 +1,4 @@
-module github.com/delta/test_app
+module apps/test_app
 
 go 1.14
 

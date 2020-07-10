@@ -53,6 +53,36 @@ func TestValidation(t *testing.T) {
 		})
 	})
 
+	var _ = Describe("Test AppIDValidate", func() {
+		It("valid AppIDValidate cases", func() {
+			Expect(validate.AppIDValidate("1234")).ToNot(HaveOccurred())
+			Expect(validate.AppIDValidate("2234")).ToNot(HaveOccurred())
+			Expect(validate.AppIDValidate("2224")).ToNot(HaveOccurred())
+		})
+		It("no valid requiredIf cases", func() {
+			Expect(validate.AppIDValidate("123412")).To(HaveOccurred())
+			Expect(validate.AppIDValidate("22342")).To(HaveOccurred())
+			Expect(validate.AppIDValidate("22222")).To(HaveOccurred())
+			Expect(validate.AppIDValidate("2")).To(HaveOccurred())
+		})
+	})
+
+	var _ = Describe("Test SystemName", func() {
+		It("valid SystemName cases", func() {
+			Expect(validate.SystemName("sirius")).ToNot(HaveOccurred())
+			Expect(validate.SystemName("test_1")).ToNot(HaveOccurred())
+			Expect(validate.SystemName("test_app")).ToNot(HaveOccurred())
+			Expect(validate.SystemName("new_test_app")).ToNot(HaveOccurred())
+		})
+		It("no valid SystemName cases", func() {
+			Expect(validate.SystemName("a")).To(HaveOccurred())
+			Expect(validate.SystemName("sdfsdfsdfsdfsdfsdf_dsfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf")).To(HaveOccurred())
+			Expect(validate.SystemName("app-test")).To(HaveOccurred())
+			Expect(validate.SystemName("app@test")).To(HaveOccurred())
+			Expect(validate.SystemName("app-test")).To(HaveOccurred())
+		})
+	})
+
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Validation Suite")
 }

@@ -18,6 +18,12 @@ type UserRepository interface {
 	ChangePassword(*model.User) error
 }
 
+// AppRepository ...
+// Репозиторий для приложений
+type AppRepository interface {
+	Create(*model.App) error
+}
+
 // TestRepository ...
 // Репозиторий для тестирования
 type TestRepository interface {

@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-
 func TestUserModel(t *testing.T) {
 	us := &model.User{}
 
@@ -37,19 +36,19 @@ func TestUserModel(t *testing.T) {
 
 	var _ = Describe("Test Validate", func() {
 		It("valid cases", func() {
-			us.Login = "Tester-US" 
+			us.Login = "Tester-US"
 			us.EncryptedPassword = "1Sd8C23b"
 			Expect(us.Validate()).To(BeNil())
 		})
 
 		It("not valid cases, invaalid name", func() {
-			us.Login = "Tes" 
+			us.Login = "Tes"
 			us.EncryptedPassword = "1Sd8C23b"
 			Expect(us.Validate()).NotTo(BeNil())
 		})
 
 		It("not valid cases, invaalid pass", func() {
-			us.Login = "Tester-US" 
+			us.Login = "Tester-US"
 			us.EncryptedPassword = "1S23456"
 			Expect(us.Validate()).NotTo(BeNil())
 		})
@@ -78,7 +77,6 @@ func TestUserModel(t *testing.T) {
 			Expect(us.ValidatePassword("", "")).NotTo(BeNil())
 		})
 	})
-
 
 	var _ = Describe("Test Sanitize", func() {
 		It("valid cases", func() {

@@ -37,7 +37,7 @@ func serve() {
 		log.Fatal(err)
 	}
 
-	err = delta.Start(config); 
+	err = delta.Start(config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func main() {
 
 	deamon := flag.Bool("deamon", false, "a bool")
 	flag.Parse()
-	
+
 	if *deamon == true {
 		cntxt := &daemon.Context{
 			PidFileName: "sample.pid",

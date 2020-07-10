@@ -14,9 +14,9 @@ import (
 
 func TestHelpers(t *testing.T) {
 
-	var it struct{
-		hesh helpers.Hesh
-		store sqlstore.Store
+	var it struct {
+		hesh    helpers.Hesh
+		store   sqlstore.Store
 		respond helpers.Respond
 	}
 
@@ -25,7 +25,7 @@ func TestHelpers(t *testing.T) {
 		log.Fatal(err)
 	}
 	store := sqlstore.New(db)
-	
+
 	var _ = Describe("Test hesh password", func() {
 		It("no valid cases", func() {
 			Expect(it.hesh.HashPassword("123456")).NotTo(Equal("123456"))
@@ -54,7 +54,7 @@ func TestHelpers(t *testing.T) {
 	})
 
 	var _ = Describe("Test jsonify", func() {
-		testRows, err := store.Test().GetTestRows();
+		testRows, err := store.Test().GetTestRows()
 		if err != nil {
 			log.Fatal(err)
 		}
