@@ -12,25 +12,23 @@ import (
 // UserRepository ...
 //Ссылка на хранилище
 type UserRepository struct {
-	hesh helpers.Hesh
+	hesh  helpers.Hesh
 	store *Store
 }
 
 // Create ...
 //Создание пользователя в базе данных
 func (r *UserRepository) Create(u *model.User) error {
+	// Валидация
 	if err := u.Validate(); err != nil {
 		return err
 	}
-
 	// Заполнить допданные
 	u.UUID = uuid.New().String()
 	u.Role = "usr_default"
 	u.EncryptedPassword = r.hesh.HashPassword(u.EncryptedPassword)
-
-	// очистить пароль
+	// Очистить пароль
 	defer u.Sanitize()
-
 	// Запрос в бд
 	return r.store.db.QueryRow(
 		`
@@ -53,13 +51,11 @@ func (r *UserRepository) Create(u *model.User) error {
 // Remove ...
 // Удаление пользователя
 func (r *UserRepository) Remove(id string) error {
-	
 	// Запрос в бд
 	_, err := r.store.db.Exec(
 		"DELETE FROM users WHERE id = $1",
 		id,
-	);
-
+	)
 	return err
 }
 
@@ -68,7 +64,6 @@ func (r *UserRepository) Remove(id string) error {
 // Поск по логину
 func (r *UserRepository) FindByLogin(login string) (*model.User, error) {
 	u := &model.User{}
-
 	// Запрос в бд
 	if err := r.store.db.QueryRow(
 		"SELECT * FROM users WHERE login_name = $1",
@@ -87,7 +82,6 @@ func (r *UserRepository) FindByLogin(login string) (*model.User, error) {
 		if err == sql.ErrNoRows {
 			return nil, store.ErrRecordNotFound
 		}
-
 		return nil, err
 	}
 
@@ -111,7 +105,7 @@ func (r *UserRepository) GetAllUsersAndFiltring(l, o, value string) (*sql.Rows, 
 	return r.store.db.Query(`
 		SELECT id, login_name, jobcode, user_name, email, phone, uuid, role 
 		FROM users  
-		WHERE user_name LIKE '`+ value +`%'
+		WHERE user_name LIKE '`+value+`%'
 		LIMIT $1 
 		OFFSET $2 * 2
 	`, l, o)
@@ -120,7 +114,7 @@ func (r *UserRepository) GetAllUsersAndFiltring(l, o, value string) (*sql.Rows, 
 // Replace ...
 // Изменить информацию пользователя
 func (r *UserRepository) Replace(u *model.User) error {
-
+	// Запрос в бд
 	_, err := r.store.db.Exec(
 		`
 		UPDATE users
@@ -134,22 +128,19 @@ func (r *UserRepository) Replace(u *model.User) error {
 		u.Phone,
 	)
 
-	// Запрос в бд
 	return err
 }
 
 // ChangePassword ...
-// Изменить пароль пользователя 
+// Изменить пароль пользователя
 func (r *UserRepository) ChangePassword(u *model.User) error {
-
+	// Проверить пароль
 	err := u.ValidatePassword(u.EncryptedPassword, u.СonfirmEncryptedPassword)
 	if err != nil {
 		return err
 	}
-
 	// Заполнить доп данные
 	u.EncryptedPassword = r.hesh.HashPassword(u.EncryptedPassword)
-
 	// Запрос в бд
 	_, err = r.store.db.Exec(
 		`
@@ -160,9 +151,8 @@ func (r *UserRepository) ChangePassword(u *model.User) error {
 		u.Login,
 		u.EncryptedPassword,
 	)
-
+	// Очистить пароль
 	u.Sanitize()
 
 	return err
-
 }

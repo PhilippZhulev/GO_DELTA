@@ -7,7 +7,7 @@ type Config struct {
 	LogLevel    string `toml:"log_level"`
 	DatabaseURL string `toml:"database_url"`
 	SessionKey  string `toml:"session_key"`
-	Salt 		    string `toml:"salt"`
+	Salt        string `toml:"salt"`
 }
 
 // NewConfig ...

@@ -4,5 +4,6 @@ package store
 // Подключенные репозитории
 type Store interface {
 	User() UserRepository
+	App() AppRepository
 	Test() TestRepository
 }

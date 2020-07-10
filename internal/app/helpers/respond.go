@@ -15,7 +15,7 @@ import (
 // Протокол хелперов
 type Respond struct {
 	Data interface{} `json:"data"`
-	Msg string `json:"msg"`
+	Msg  string      `json:"msg"`
 }
 
 // Error ...
@@ -30,7 +30,7 @@ func (h *Respond) Error(w http.ResponseWriter, r *http.Request, code int, err er
 func (h *Respond) Done(w http.ResponseWriter, r *http.Request, code int, data interface{}, mess string) {
 	result := &Respond{
 		Data: data,
-		Msg: mess,
+		Msg:  mess,
 	}
 	w.WriteHeader(code)
 	if data != nil {
@@ -46,20 +46,20 @@ func (h *Respond) ParseDone(w http.ResponseWriter, r *http.Request, code int, da
 	result = strings.ReplaceAll(result, "${mess}", mess)
 
 	w.WriteHeader(code)
-  w.Write([]byte(fmt.Sprintf(result)))
+	w.Write([]byte(fmt.Sprintf(result)))
 }
 
 // ClearSession ...
 // Очистка сессии
 func (h *Respond) ClearSession(s *sessions.Session, w http.ResponseWriter, r *http.Request) {
-		// Удалить сессию
-		s.Options.MaxAge = -1
-		_ = s.Save(r, w)
+	// Удалить сессию
+	s.Options.MaxAge = -1
+	_ = s.Save(r, w)
 }
 
 // GetUUID ...
 // Получить uuid из токена
 func (h *Respond) GetUUID(ctx context.Context) string {
-		_, cl, _ := jwtauth.FromContext(ctx)
-		return cl["uuid"].(string)
+	_, cl, _ := jwtauth.FromContext(ctx)
+	return cl["uuid"].(string)
 }

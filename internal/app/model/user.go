@@ -10,14 +10,14 @@ type User struct {
 	ID                       int    `json:"id"`
 	Login                    string `json:"login"`
 	Password                 string `json:"password,omitempty"`
-	EncryptedPassword 			 string `json:"-"`
+	EncryptedPassword        string `json:"-"`
 	СonfirmEncryptedPassword string `json:"confirm_password,omitempty"`
-	JobCode 					       string `json:"jobCode"`
-	Email 						       string `json:"email"`
-	Phone 									 string `json:"phone"`
-	Name 										 string `json:"name"`
-	UUID              			 string `json:"uuid"`
-	Role 										 string `json:"role"`
+	JobCode                  string `json:"jobCode"`
+	Email                    string `json:"email"`
+	Phone                    string `json:"phone"`
+	Name                     string `json:"name"`
+	UUID                     string `json:"uuid"`
+	Role                     string `json:"role"`
 }
 
 // Validate ...
@@ -25,13 +25,13 @@ type User struct {
 func (u *User) Validate() error {
 
 	err := validation.ValidateStruct(
-		u, 
+		u,
 		validation.Field(&u.Login, validation.Required, validation.Length(4, 35)),
-	) 
+	)
 
 	if err != nil {
 		return err
-	} 
+	}
 
 	return validate.Pass(u.EncryptedPassword)
 }
@@ -58,4 +58,3 @@ func (u *User) Sanitize() {
 	u.Password = ""
 	u.EncryptedPassword = ""
 }
-

@@ -23,21 +23,20 @@ var (
 
 //Статусы
 var (
-	userCreated = "User created"
-	userRemoved = "User removed"
-	sessionReceived = "Session received"
+	userCreated      = "User created"
+	userRemoved      = "User removed"
+	sessionReceived  = "Session received"
 	userListReceived = "User list received"
-	userReplace = "User replace"
-	changePassword = "Password is changed"
-	resetPassword = "Password is reset"
+	userReplace      = "User replace"
+	changePassword   = "Password is changed"
+	resetPassword    = "Password is reset"
 )
-
 
 // InitUser ...
 // Протокол аунтификации
 type InitUser struct {
 	respond *helpers.Respond
-	store  store.Store
+	store   store.Store
 }
 
 // HandleUserCreate ...
@@ -45,42 +44,37 @@ type InitUser struct {
 func (iu *InitUser) HandleUserCreate(
 	store store.Store,
 ) http.HandlerFunc {
-
 	// Данные запроса
 	type request struct {
-		Name string `json:"name"`
-		Login string `json:"login"`
+		Name     string `json:"name"`
+		Login    string `json:"login"`
 		Password string `json:"password"`
-		JobCode string `json:"jobCode"`
-		Email string `json:"email"`
-		Phone string `json:"phone"`
+		JobCode  string `json:"jobCode"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
 	}
 
-	return func (w http.ResponseWriter, r *http.Request) {
-
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Парсить запрос
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Создать запись в store
 		u := &model.User{
-			Login:    req.Login,
+			Login:             req.Login,
 			EncryptedPassword: req.Password,
-			JobCode: req.JobCode,
-			Name: req.Name,
-			Email: req.Email,
-			Phone: req.Phone,
+			JobCode:           req.JobCode,
+			Name:              req.Name,
+			Email:             req.Email,
+			Phone:             req.Phone,
 		}
-		
 		// Записать пользователя в базу
 		if err := store.User().Create(u); err != nil {
 			iu.respond.Error(w, r, http.StatusUnprocessableEntity, err)
 			return
 		}
-
 		// Если все ок отправить ответ
 		iu.respond.Done(w, r, http.StatusCreated, u, userCreated)
 	}
@@ -89,21 +83,17 @@ func (iu *InitUser) HandleUserCreate(
 // HandleRemoveUser ...
 // Удаление пользователя по id
 func (iu *InitUser) HandleRemoveUser(store store.Store) http.HandlerFunc {
-
 	// Данные ответа
-	type respond struct {}
+	type respond struct{}
 
-	return func (w http.ResponseWriter, r *http.Request) {
-
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Параметр id
 		id := chi.URLParam(r, "id")
-
 		// Удалить пользователя из базы
 		if err := store.User().Remove(id); err != nil {
 			iu.respond.Error(w, r, http.StatusUnprocessableEntity, err)
 			return
 		}
-
 		// Если все ок отправить ответ
 		iu.respond.Done(w, r, http.StatusOK, &respond{}, userRemoved)
 	}
@@ -114,26 +104,23 @@ func (iu *InitUser) HandleRemoveUser(store store.Store) http.HandlerFunc {
 func (iu *InitUser) HandleUserSession(
 	sesStore sessions.Store,
 ) http.HandlerFunc {
-
 	// Данные ответа
 	type respond struct {
-		Name string `json:"name"`
-		Login string `json:"login"`
+		Name    string `json:"name"`
+		Login   string `json:"login"`
 		JobCode string `json:"jobCode"`
-		Email string `json:"email"`
-		Phone string `json:"phone"`
-		Role string `json:"role"`
+		Email   string `json:"email"`
+		Phone   string `json:"phone"`
+		Role    string `json:"role"`
 	}
 
-	return func (w http.ResponseWriter, r *http.Request) {
-		
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Получить сессию
 		session, err := sesStore.Get(r, iu.respond.GetUUID(r.Context()))
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Map to struct
 		res := &respond{}
 		err = mapstructure.Decode(session.Values, &res)
@@ -141,7 +128,6 @@ func (iu *InitUser) HandleUserSession(
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Если все ок отправить ответ
 		iu.respond.Done(w, r, http.StatusOK, res, sessionReceived)
 	}
@@ -150,46 +136,39 @@ func (iu *InitUser) HandleUserSession(
 // HandleUserList ...
 // Получить список пользователей
 func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
-
 	// Структура элемента выборки
 	type item struct {
-		ID string `json:"id"`
-		Login string `json:"login"`
+		ID      string `json:"id"`
+		Login   string `json:"login"`
 		JobCode string `json:"jobCode"`
-		Name string `json:"name"`
-		Email string `json:"email"`
-		Phone string `json:"phone"`
-		UUID string `json:"uiid"`
-		Role string `json:"role"`
+		Name    string `json:"name"`
+		Email   string `json:"email"`
+		Phone   string `json:"phone"`
+		UUID    string `json:"uiid"`
+		Role    string `json:"role"`
 	}
-
 	// Тело запроса
 	// если POST
 	type request struct {
-			Value string `json:"value"`
+		Value string `json:"value"`
 	}
-
 	// Данные ответа
 	type respond struct {
-		Size int `json:"size"`
-		Page int `json:"page"`
+		Size   int    `json:"size"`
+		Page   int    `json:"page"`
 		Result []item `json:"result"`
 	}
 
-	return func (w http.ResponseWriter, r *http.Request) {
-
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Основные переменные
 		var (
-			result []item
-			im = &item{}
-			l = chi.URLParam(r, "limit")
-			o = chi.URLParam(r, "offset")
-		) 
-
-		var (
+			result    []item
+			im        = &item{}
+			l         = chi.URLParam(r, "limit")
+			o         = chi.URLParam(r, "offset")
 			usersRows *sql.Rows
-			err error
+			err       error
 		)
-
 		// Запрос в бд
 		if r.Method == "POST" {
 			// Парсить запрос
@@ -199,31 +178,29 @@ func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
 				return
 			}
 			// Запрос + фильтрация + пегинация
-			usersRows, err = store.User().GetAllUsersAndFiltring(l, o, req.Value);
+			usersRows, err = store.User().GetAllUsersAndFiltring(l, o, req.Value)
 		} else {
 			// Запрос + пегинация
-			usersRows, err = store.User().GetAllUsers(l, o);
+			usersRows, err = store.User().GetAllUsers(l, o)
 		}
-
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusUnprocessableEntity, err)
 			return
 		}
 		defer usersRows.Close()
-
 		// Обработка выборки
 		// генерация структуры
 		// создане пегинации
 		i := 0
 		for usersRows.Next() {
-			err := usersRows.Scan( 
-				&im.ID, 
-				&im.Login, 
-				&im.JobCode, 
-				&im.Name, 
-				&im.Email, 
-				&im.Phone, 
-				&im.UUID, 
+			err := usersRows.Scan(
+				&im.ID,
+				&im.Login,
+				&im.JobCode,
+				&im.Name,
+				&im.Email,
+				&im.Phone,
+				&im.UUID,
 				&im.Role,
 			)
 			if err != nil {
@@ -233,7 +210,6 @@ func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
 			result = append(result, *im)
 			i++
 		}
-
 		// Конверт параметров ссылки в int
 		split, err := strconv.Atoi(l)
 		page, err := strconv.Atoi(o)
@@ -241,14 +217,12 @@ func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Заполнить ответ
 		res := &respond{
 			Result: result,
-			Page: page,
-			Size: split,
+			Page:   page,
+			Size:   split,
 		}
-
 		// Если все ок отправить ответ
 		iu.respond.Done(w, r, http.StatusOK, res, userListReceived)
 	}
@@ -257,56 +231,49 @@ func (iu *InitUser) HandleUserList(store store.Store) http.HandlerFunc {
 //HandleUserReplace ...
 //Изменение инфомации о пользователей
 func (iu *InitUser) HandleUserReplace(store store.Store) http.HandlerFunc {
-
 	// Структура запроса
 	type request struct {
-		Name string `json:"name"`
-		Login string `json:"login"`
+		Name    string `json:"name"`
+		Login   string `json:"login"`
 		JobCode string `json:"jobCode"`
-		Email string `json:"email"`
-		Phone string `json:"phone"`
+		Email   string `json:"email"`
+		Phone   string `json:"phone"`
 	}
-
 	// Структура ответа
 	type response struct {
-		Name string `json:"name"`
+		Name    string `json:"name"`
 		JobCode string `json:"jobCode"`
-		Email string `json:"email"`
-		Phone string `json:"phone"`
+		Email   string `json:"email"`
+		Phone   string `json:"phone"`
 	}
 
-	return func (w http.ResponseWriter, r *http.Request)  {
-
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Парсить запрос
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Заполнить протокол
 		u := &model.User{
 			Login:   req.Login,
 			JobCode: req.JobCode,
-			Name: 	 req.Name,
-			Email: 	 req.Email,
+			Name:    req.Name,
+			Email:   req.Email,
 			Phone:   req.Phone,
 		}
-
 		// Перезапись полей в базе
 		if err := store.User().Replace(u); err != nil {
 			iu.respond.Error(w, r, http.StatusUnprocessableEntity, err)
 			return
 		}
-
 		// Ответ
 		res := &response{
-			Name: 	 u.Name,
+			Name:    u.Name,
 			JobCode: u.JobCode,
-			Email: 	 u.Email,
-			Phone: 	 u.Phone,
+			Email:   u.Email,
+			Phone:   u.Phone,
 		}
-
 		// Если все ок отправить ответ
 		iu.respond.Done(w, r, http.StatusOK, res, userReplace)
 	}
@@ -315,36 +282,31 @@ func (iu *InitUser) HandleUserReplace(store store.Store) http.HandlerFunc {
 //HandleChangePassword ...
 //Измененить пароль пользователя
 func (iu *InitUser) HandleChangePassword(
-	store store.Store, 
+	store store.Store,
 	sesStore sessions.Store,
 ) http.HandlerFunc {
-
 	// Структура запроса
 	type request struct {
-		Password string  `json:"password"`
-		EncryptedPassword string  `json:"new"`
+		Password                 string `json:"password"`
+		EncryptedPassword        string `json:"new"`
 		СonfirmEncryptedPassword string `json:"confirm"`
 	}
-
 	// Ответ
-	type response struct {}
+	type response struct{}
 
-	return func (w http.ResponseWriter, r *http.Request)  {
-
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Парсить запрос
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Получить сессию
 		session, err := sesStore.Get(r, iu.respond.GetUUID(r.Context()))
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Map to struct
 		u := &model.User{}
 		err = mapstructure.Decode(session.Values, &u)
@@ -352,19 +314,16 @@ func (iu *InitUser) HandleChangePassword(
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Заполнить данные пароля
 		u.Password = req.СonfirmEncryptedPassword
 		u.EncryptedPassword = req.EncryptedPassword
 		u.СonfirmEncryptedPassword = req.СonfirmEncryptedPassword
-
 		// Запросить изменение
 		err = store.User().ChangePassword(u)
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-		
 		// Если все ок отправить ответ
 		iu.respond.Done(w, r, http.StatusOK, &response{}, changePassword)
 	}
@@ -373,55 +332,48 @@ func (iu *InitUser) HandleChangePassword(
 //HandleResetPassword ...
 // Сбросить пароль пользователя
 func (iu *InitUser) HandleResetPassword(
-	store store.Store, 
+	store store.Store,
 	sesStore sessions.Store,
 ) http.HandlerFunc {
-
 	// Структура запроса
 	type request struct {
-		Login string  `json:"login"`
+		Login string `json:"login"`
 	}
-
+	// Структура ответа
 	type response struct {
-		Login string  `json:"login"`
-		NewPassword string  `json:"newPassword"`
+		Login       string `json:"login"`
+		NewPassword string `json:"newPassword"`
 	}
 
-	return func (w http.ResponseWriter, r *http.Request)  {
-
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Парсить запрос
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Сгенерировать пароль
 		pass, err := password.Generate(8, 3, 0, false, true)
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusBadGateway, err)
 			return
 		}
-
 		// Заполнить данные пароля
 		u := &model.User{}
 		u.Login = req.Login
 		u.EncryptedPassword = pass
 		u.СonfirmEncryptedPassword = pass
-
 		// Запросить изменение
 		err = store.User().ChangePassword(u)
 		if err != nil {
 			iu.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
 		// Создать ответ`
 		res := &response{
-			Login: req.Login,
+			Login:       req.Login,
 			NewPassword: pass,
 		}
-		
 		// Если все ок отправить ответ
 		iu.respond.Done(w, r, http.StatusOK, res, resetPassword)
 	}

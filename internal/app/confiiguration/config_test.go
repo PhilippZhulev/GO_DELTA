@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-
 func TestConfig(t *testing.T) {
 	var _ = Describe("Test Config", func() {
 		var (
@@ -23,7 +22,7 @@ func TestConfig(t *testing.T) {
 		_, err := toml.DecodeFile(configPath, config)
 		n := structs.Names(config)
 		v := structs.Values(config)
-		
+
 		It("valid cases, struct and not error", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(len(n)).To(Equal(5))
