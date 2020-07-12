@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 
 	"github.com/PhilippZhulev/delta/internal/app/helpers"
 	"github.com/PhilippZhulev/delta/internal/app/model"
@@ -72,28 +73,43 @@ func (ia InitApp) CreateApp(store store.Store) http.HandlerFunc {
 // RunApplication ...
 // Активировать приложение
 func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
-	// Данные ответа
-	type response struct {
-		Pid int `json:"pid"`
-	}
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Установить root dir
 		var (
 			_, b, _, _ = runtime.Caller(0)
 			root       = filepath.Join(filepath.Dir(b), "../../..")
+			port       = chi.URLParam(r, "port")
 		)
+
+		// Удалить запись о запуске
+		// если приложениу уже было запущенно
+		_ = store.App().RemoveLaunchApp(port);
+
+		// Создать запись в store
+		al := &model.AppLaunch{}
+		a := &model.App{}
+		// Записать приложение в базу
+		if err := store.App().GetAppToID(a, al, port); err != nil {
+			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
+			return
+		}
 		// Запустить приложение через командную строку
-		cmd := exec.Command(root+"/apps/test_app/app", "-port", chi.URLParam(r, "port"), "-name", "test_app_1")
-		// Запуск cmd
+		cmd := exec.Command(root+"/apps/" + al.AppSystemName + "/app", "-port", port, "-name", al.AppSystemName)
 		err := cmd.Start()
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
+
+		al.Pid = cmd.Process.Pid
+		// Записать приложение в базу
+		if err := store.App().LaunchApp(al); err != nil {
+			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
+			return
+		}
 		// Ответ
 		//Отдает pid
-		ia.respond.Done(w, r, http.StatusOK, &response{cmd.Process.Pid}, startSuccess)
+		ia.respond.Done(w, r, http.StatusOK, &al, startSuccess)
 	}
 }
 
@@ -106,12 +122,26 @@ func (ia InitApp) StopApplication(store store.Store) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		// port
+		var port = chi.URLParam(r, "port")
+
+		al := &model.AppLaunch{}
+		// Получить pid
+		if err := store.App().GetLaunchApp(al, port); err != nil {
+			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
+			return
+		}
 		// Убить Процесс через cmd
-		cmd := exec.Command("kill", chi.URLParam(r, "pid"))
+		cmd := exec.Command("kill", strconv.Itoa(al.Pid))
 		// Запустить коанду
 		err := cmd.Run()
 		if err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+		// Удалить из launch
+		if err := store.App().RemoveLaunchApp(port); err != nil {
+			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
 			return
 		}
 		// Ответ

@@ -1,8 +1,11 @@
 package sqlstore
 
 import (
+	"database/sql"
+
 	"github.com/PhilippZhulev/delta/internal/app/helpers"
 	"github.com/PhilippZhulev/delta/internal/app/model"
+	"github.com/PhilippZhulev/delta/internal/app/store"
 )
 
 // AppRepository ...
@@ -45,4 +48,83 @@ func (ar *AppRepository) Create(a *model.App) error {
 		a.AppCategory,
 		a.Token,
 	).Scan(&a.ID)
+}
+
+// GetAppToID ...
+// Получить приложение по ID
+func (ar *AppRepository) GetAppToID(a *model.App, al *model.AppLaunch, id string) error {
+
+	// Проверить формат ID
+	err := a.ValideID(id)
+	if err != nil {
+		return err
+	}
+
+	// Запрос в бд
+	if err := ar.store.db.QueryRow(
+		`
+		SELECT app_system_name, app_id
+		FROM apps 
+		WHERE app_id = $1
+		`,
+		id,
+	).Scan(
+		&al.AppSystemName,
+		&al.AppID,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return store.ErrRecordNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+// LaunchApp ...
+// Сохранить запущенное приложеник
+func (ar *AppRepository) LaunchApp(al *model.AppLaunch) error {
+	return ar.store.db.QueryRow(
+		`
+		INSERT INTO launch 
+		(app_system_name, app_id, pid) 
+		VALUES ($1, $2, $3) 
+		RETURNING id
+		`,
+		al.AppSystemName,
+		al.AppID,
+		al.Pid,
+	).Scan(&al.ID)
+}
+
+// GetLaunchApp ...
+// Получить запущенное приложеник
+func (ar *AppRepository) GetLaunchApp(al *model.AppLaunch, id string) error {
+	// Запрос в бд
+	if err := ar.store.db.QueryRow(
+		`
+		SELECT pid
+		FROM launch 
+		WHERE app_id = $1
+		`,
+		id,
+	).Scan(&al.Pid); err != nil {
+		if err == sql.ErrNoRows {
+			return store.ErrRecordNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
+// RemoveLaunchApp ...
+// Удалить запущенное приложеник
+func (ar *AppRepository) RemoveLaunchApp(id string) error {
+	// Запрос в бд
+	_, err := ar.store.db.Exec(
+		"DELETE FROM launch WHERE app_id = $1",
+		id,
+	)
+	return err
 }
