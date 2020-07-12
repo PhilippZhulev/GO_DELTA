@@ -26,9 +26,9 @@ func (d *Delta) Handler(r serve.Request, w *serve.Writer) error {
 	// Добавить промежуточный обработчик
 	r.Use(w, middleTest)
 	// Инициализировать метод
-	post := serve.Method{"POST"}
+	put := serve.Method{"PUT"}
 	// Создать обработчик
-	post.Handle(r, "pinger", func() {
+	put.Handle(r, "pinger", func() {
 		// Заполняем структуру
 		res := &respond{
 			Name:    "test",

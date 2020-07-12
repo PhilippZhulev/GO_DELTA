@@ -22,6 +22,10 @@ type UserRepository interface {
 // Репозиторий для приложений
 type AppRepository interface {
 	Create(*model.App) error
+	GetAppToID(a *model.App, al *model.AppLaunch, id string) error
+	LaunchApp(al *model.AppLaunch) error
+	GetLaunchApp(al *model.AppLaunch, id string) error
+	RemoveLaunchApp(id string) error
 }
 
 // TestRepository ...
