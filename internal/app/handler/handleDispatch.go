@@ -97,8 +97,7 @@ func (idch *InitDispatch) HandleDispatch(
 		}
 		// Отправить параметры в handler sub.app
 		result := &Result{}
-		err = client.Call("Delta.Handler", args, &result)
-		if err != nil {
+		if err = client.Call("Delta.Handler", args, &result); err != nil {
 			idch.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}

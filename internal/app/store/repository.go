@@ -26,6 +26,7 @@ type AppRepository interface {
 	LaunchApp(al *model.AppLaunch) error
 	GetLaunchApp(al *model.AppLaunch, id string) error
 	RemoveLaunchApp(id string) error
+	Change(a *model.App, id string) error
 }
 
 // TestRepository ...
