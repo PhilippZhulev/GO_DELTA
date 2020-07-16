@@ -7,6 +7,11 @@ serve:
 	go build -v ./cmd/delta
 	./delta
 
+.PHONY: dispatch
+dispatch:
+	go build -v ./cmd/dispatch
+	./dispatch
+
 .PHONY: demon
 demon:
 	go build -v ./cmd/delta
