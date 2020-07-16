@@ -8,7 +8,8 @@ import (
 )
 
 // Jsonify ...
-func Jsonify(rows *sql.Rows) ([]string) {
+// Преобразователь json в map
+func Jsonify(rows *sql.Rows) []string {
 	columns, err := rows.Columns()
 	if err != nil {
 		panic(err.Error())
@@ -37,22 +38,21 @@ func Jsonify(rows *sql.Rows) ([]string) {
 
 		for i, value := range values {
 			switch value.(type) {
-				case nil:
-					results[columns[i]] = nil
+			case nil:
+				results[columns[i]] = nil
 
-				case []byte:
-					s := string(value.([]byte))
-					x, err := strconv.Atoi(s)
+			case []byte:
+				s := string(value.([]byte))
+				x, err := strconv.Atoi(s)
 
-					if err != nil {
-						results[columns[i]] = s
-					} else {
-						results[columns[i]] = x
-					}
+				if err != nil {
+					results[columns[i]] = s
+				} else {
+					results[columns[i]] = x
+				}
 
-
-				default:
-					results[columns[i]] = value
+			default:
+				results[columns[i]] = value
 			}
 		}
 
