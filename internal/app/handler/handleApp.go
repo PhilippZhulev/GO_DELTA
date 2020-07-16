@@ -19,6 +19,7 @@ var (
 	startSuccess = "Application started..."
 	stopSuccess  = "Application stoped..."
 	appCreated   = "Application created"
+	appChanged   = "Application change"
 )
 
 // InitApp ...
@@ -73,6 +74,14 @@ func (ia InitApp) CreateApp(store store.Store) http.HandlerFunc {
 // RunApplication ...
 // Активировать приложение
 func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
+	//Данные ответа
+	type response struct {
+		ID            int    `json:"id"`
+		AppSystemName string `json:"appSystemName"`
+		AppID         string `json:"appId"`
+		Pid           int    `json:"pid"`
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Установить root dir
 		var (
@@ -83,7 +92,7 @@ func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
 
 		// Удалить запись о запуске
 		// если приложениу уже было запущенно
-		_ = store.App().RemoveLaunchApp(port);
+		_ = store.App().RemoveLaunchApp(port)
 
 		// Создать запись в store
 		al := &model.AppLaunch{}
@@ -94,9 +103,8 @@ func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
 			return
 		}
 		// Запустить приложение через командную строку
-		cmd := exec.Command(root+"/apps/" + al.AppSystemName + "/app", "-port", port, "-name", al.AppSystemName)
-		err := cmd.Start()
-		if err != nil {
+		cmd := exec.Command(root+"/apps/"+al.AppSystemName+"/app", "-port", port, "-name", al.AppSystemName)
+		if err := cmd.Start(); err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
@@ -109,7 +117,8 @@ func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
 		}
 		// Ответ
 		//Отдает pid
-		ia.respond.Done(w, r, http.StatusOK, &al, startSuccess)
+		res := &response{al.ID, al.AppSystemName, al.AppID, al.Pid}
+		ia.respond.Done(w, r, http.StatusOK, res, startSuccess)
 	}
 }
 
@@ -123,8 +132,7 @@ func (ia InitApp) StopApplication(store store.Store) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		// port
-		var port = chi.URLParam(r, "port")
-
+		port := chi.URLParam(r, "port")
 		al := &model.AppLaunch{}
 		// Получить pid
 		if err := store.App().GetLaunchApp(al, port); err != nil {
@@ -134,8 +142,7 @@ func (ia InitApp) StopApplication(store store.Store) http.HandlerFunc {
 		// Убить Процесс через cmd
 		cmd := exec.Command("kill", strconv.Itoa(al.Pid))
 		// Запустить коанду
-		err := cmd.Run()
-		if err != nil {
+		if err := cmd.Run(); err != nil {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
@@ -146,5 +153,41 @@ func (ia InitApp) StopApplication(store store.Store) http.HandlerFunc {
 		}
 		// Ответ
 		ia.respond.Done(w, r, http.StatusOK, empty, stopSuccess)
+	}
+}
+
+// ChangeApp ...
+// Изменить даные приложения приложение
+func (ia InitApp) ChangeApp(store store.Store) http.HandlerFunc {
+	// Данные запроса
+	type request struct {
+		ID          string `json:"id"`
+		AppName     string `json:"name"`
+		AppCategory string `json:"category"`
+		AppDesc     string `json:"desc"`
+		AppState    bool   `json:"state"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Парсить запрос
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			ia.respond.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+		// Создать запись в store
+		a := &model.App{
+			AppName:     req.AppName,
+			AppCategory: req.AppCategory,
+			AppDesc:     req.AppDesc,
+			AppState:    req.AppState,
+		}
+		// Записать приложение в базу
+		if err := store.App().Change(a, req.ID); err != nil {
+			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
+			return
+		}
+	  // Ответ
+		ia.respond.Done(w, r, http.StatusOK, &req, appChanged)
 	}
 }

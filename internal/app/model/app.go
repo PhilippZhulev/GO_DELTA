@@ -18,6 +18,7 @@ type App struct {
 	Rating        int    `json:"rating"`
 	AppCategory   string `json:"app_category"`
 	Token         string `json:"token"`
+	AppDesc       string `json:"app_desc"`
 }
 
 // AppLaunch ...

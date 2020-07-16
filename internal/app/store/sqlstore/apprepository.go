@@ -19,12 +19,11 @@ type AppRepository struct {
 // Создать приложение
 func (ar *AppRepository) Create(a *model.App) error {
 	// Проверить формат ID
-	err := a.ValideID(a.AppID)
-	if err != nil {
+	if err := a.ValideID(a.AppID); err != nil {
 		return err
 	}
 	// Проверить ситемное имя
-	err = a.ValideSystemName(a.AppSystemName)
+	err := a.ValideSystemName(a.AppSystemName)
 	if err != nil {
 		return err
 	}
@@ -55,8 +54,7 @@ func (ar *AppRepository) Create(a *model.App) error {
 func (ar *AppRepository) GetAppToID(a *model.App, al *model.AppLaunch, id string) error {
 
 	// Проверить формат ID
-	err := a.ValideID(id)
-	if err != nil {
+	if err := a.ValideID(id); err != nil {
 		return err
 	}
 
@@ -126,5 +124,29 @@ func (ar *AppRepository) RemoveLaunchApp(id string) error {
 		"DELETE FROM launch WHERE app_id = $1",
 		id,
 	)
+	return err
+}
+
+// Change ...
+// Изменить описание приложения
+func (ar *AppRepository) Change(a *model.App, id string) error {
+	// Проверить формат ID
+	if err := a.ValideID(id); err != nil {
+		return err
+	}
+	// Запрос в бд
+	_, err := ar.store.db.Exec(
+		`
+		UPDATE apps
+		SET app_name = $2, app_state = $3, app_desc = $4, app_category = $5
+		WHERE app_id = $1
+		`,
+		id,
+		a.AppName,
+		a.AppState,
+		a.AppDesc,
+		a.AppCategory,
+	)
+
 	return err
 }

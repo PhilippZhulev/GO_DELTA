@@ -87,6 +87,7 @@ func (s *server) configureMiddleware() {
 			route.Options("/run/{port}", s.app.RunApplication(s.store))
 			route.Options("/stop/{port}", s.app.StopApplication(s.store))
 			route.Post("/", s.app.CreateApp(s.store))
+			route.Put("/", s.app.ChangeApp(s.store))
 		})
 		// Запросы пользователя
 		router.Route("/api/v1/user", func(route chi.Router) {
