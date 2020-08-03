@@ -27,6 +27,8 @@ type AppRepository interface {
 	GetLaunchApp(al *model.AppLaunch, id string) error
 	RemoveLaunchApp(id string) error
 	Change(a *model.App, id string) error
+	GetAllAppsAndFiltring(l, o, value string) (*sql.Rows, error)
+	GetAllApps(l, o string) (*sql.Rows, error)
 }
 
 // TestRepository ...

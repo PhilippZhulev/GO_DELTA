@@ -150,3 +150,26 @@ func (ar *AppRepository) Change(a *model.App, id string) error {
 
 	return err
 }
+
+// GetAllAppsAndFiltring ...
+// Получить приложений по параметрам филтрации
+func (ar *AppRepository) GetAllAppsAndFiltring(l, o, value string) (*sql.Rows, error) {
+	return ar.store.db.Query(`
+		SELECT id, app_system_name, app_name, app_category, rating 
+		FROM apps  
+		WHERE app_name LIKE '`+value+`%'
+		LIMIT $1 
+		OFFSET $2 * 2
+	`, l, o)
+}
+
+// GetAllApps ...
+// Получить приложения
+func (ar *AppRepository) GetAllApps(l, o string) (*sql.Rows, error) {
+	return ar.store.db.Query(`
+		SELECT id, app_system_name, app_name, app_category, rating  
+		FROM apps  
+		LIMIT $1 
+		OFFSET $2 * 2
+	`, l, o)
+}
