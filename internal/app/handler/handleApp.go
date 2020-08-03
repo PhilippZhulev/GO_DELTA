@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"os/exec"
@@ -16,10 +17,11 @@ import (
 
 //Статусы
 var (
-	startSuccess = "Application started..."
-	stopSuccess  = "Application stoped..."
-	appCreated   = "Application created"
-	appChanged   = "Application change"
+	startSuccess    = "Application started..."
+	stopSuccess     = "Application stoped..."
+	appCreated      = "Application created"
+	appChanged      = "Application change"
+	appListReceived = "Application list received"
 )
 
 // InitApp ...
@@ -187,7 +189,97 @@ func (ia InitApp) ChangeApp(store store.Store) http.HandlerFunc {
 			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
 			return
 		}
-	  // Ответ
+		// Ответ
 		ia.respond.Done(w, r, http.StatusOK, &req, appChanged)
+	}
+}
+
+// GetAppList ...
+// Получить список приложений
+func (ia InitApp) GetAppList(store store.Store) http.HandlerFunc {
+	// Данные элемента возврата
+	type item struct {
+		AppID         string `json:"id"`
+		AppSystemName string `json:"systemName"`
+		AppName       string `json:"name"`
+		AppCategory   string `json:"category"`
+		AppRating     int    `json:"rating"`
+	}
+	// Тело запроса
+	// если POST
+	type request struct {
+		Value string `json:"value"`
+	}
+	// Данные ответа
+	type respond struct {
+		Size   int    `json:"size"`
+		Page   int    `json:"page"`
+		Result []item `json:"result"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Основные переменные
+		var (
+			result  []item
+			im      = &item{}
+			l       = chi.URLParam(r, "limit")
+			o       = chi.URLParam(r, "offset")
+			appRows *sql.Rows
+			err     error
+		)
+		// Запрос в бд
+		if r.Method == "POST" {
+			// Парсить запрос
+			req := &request{}
+			if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+				ia.respond.Error(w, r, http.StatusBadRequest, err)
+				return
+			}
+			// Запрос + фильтрация + пегинация
+			appRows, err = store.App().GetAllAppsAndFiltring(l, o, req.Value)
+		} else {
+			// Запрос + пегинация
+			appRows, err = store.App().GetAllApps(l, o)
+		}
+
+		if err != nil {
+			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
+			return
+		}
+		defer appRows.Close()
+		// Обработка выборки
+		// генерация структуры
+		// создане пегинации
+		i := 0
+		for appRows.Next() {
+			err := appRows.Scan(
+				&im.AppID,
+				&im.AppSystemName,
+				&im.AppName,
+				&im.AppCategory,
+				&im.AppRating,
+			)
+			if err != nil {
+				ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
+				return
+			}
+			result = append(result, *im)
+			i++
+		}
+		// Конверт параметров ссылки в int
+		split, err := strconv.Atoi(l)
+		page, err := strconv.Atoi(o)
+		if err != nil {
+			ia.respond.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+		// Заполнить ответ
+		res := &respond{
+			Result: result,
+			Page:   page,
+			Size:   split,
+		}
+		// Если все ок отправить ответ
+		ia.respond.Done(w, r, http.StatusOK, res, appListReceived)
 	}
 }
