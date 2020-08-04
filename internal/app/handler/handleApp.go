@@ -22,6 +22,7 @@ var (
 	appCreated      = "Application created"
 	appChanged      = "Application change"
 	appListReceived = "Application list received"
+	appReceived     = "Application received"
 )
 
 // InitApp ...
@@ -110,7 +111,7 @@ func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
+		
 		al.Pid = cmd.Process.Pid
 		// Записать приложение в базу
 		if err := store.App().LaunchApp(al); err != nil {
@@ -281,5 +282,44 @@ func (ia InitApp) GetAppList(store store.Store) http.HandlerFunc {
 		}
 		// Если все ок отправить ответ
 		ia.respond.Done(w, r, http.StatusOK, res, appListReceived)
+	}
+}
+
+// GetApp ...
+// Получить данные приложения
+func (ia InitApp) GetApp(store store.Store) http.HandlerFunc {
+	// Данные элемента возврата
+	type respond struct {
+		AppID         string `json:"id"`
+		AppSystemName string `json:"systemName"`
+		AppName       string `json:"name"`
+		AppCategory   string `json:"category"`
+		AppRating     int    `json:"rating"`
+		AppState      bool   `json:"state"`
+		AppDesc       string `json:"desc"`
+		Avatar        string `json:"avatar"`
+	}
+
+	return func (w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		a  := &model.App{}
+		// Записать приложение в базу
+		if err := store.App().GetAppDataToID(a, id); err != nil {
+			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
+			return
+		}
+		// Заполнить ответ
+		res := &respond{
+			AppID:         a.AppID,
+			AppSystemName: a.AppSystemName,
+			AppName:       a.AppName,
+			AppCategory:   a.AppCategory,
+			AppRating:     a.Rating,
+			AppState:      a.AppState,
+			AppDesc:       a.AppDesc,
+			Avatar:        a.Avatar,
+		}
+		// Если все ок отправить ответ
+		ia.respond.Done(w, r, http.StatusOK, res, appReceived)
 	}
 }

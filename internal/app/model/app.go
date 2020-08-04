@@ -19,6 +19,7 @@ type App struct {
 	AppCategory   string `json:"app_category"`
 	Token         string `json:"token"`
 	AppDesc       string `json:"app_desc"`
+	Avatar        string `json:"avatar"`
 }
 
 // AppLaunch ...
