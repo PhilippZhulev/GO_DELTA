@@ -29,6 +29,7 @@ type AppRepository interface {
 	Change(a *model.App, id string) error
 	GetAllAppsAndFiltring(l, o, value string) (*sql.Rows, error)
 	GetAllApps(l, o string) (*sql.Rows, error)
+	GetAppDataToID(a *model.App, id string) error
 }
 
 // TestRepository ...

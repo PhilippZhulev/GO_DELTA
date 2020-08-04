@@ -92,6 +92,8 @@ func (s *server) configureMiddleware() {
 			route.Get("/list/{limit}/{offset}", s.app.GetAppList(s.store))
 			// Получить список приложений (Фильтрация)
 			route.Post("/list/{limit}/{offset}", s.app.GetAppList(s.store))
+			// Получить приложение
+			route.Get("/{id}", s.app.GetApp(s.store))
 		})
 		// Запросы пользователя
 		router.Route("/api/v1/user", func(route chi.Router) {

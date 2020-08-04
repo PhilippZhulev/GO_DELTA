@@ -32,10 +32,12 @@ func (ar *AppRepository) Create(a *model.App) error {
 	a.Rating = 0
 	a.Token = a.TokenGenerator()
 
+	empty := "none"
+
 	return ar.store.db.QueryRow(
 		`
 		INSERT INTO apps 
-		(app_name, app_system_name, app_id, app_state, rating, app_category, token) 
+		(app_name, app_system_name, app_id, app_state, rating, app_category, token, , avatar) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7) 
 		RETURNING id
 		`,
@@ -46,18 +48,18 @@ func (ar *AppRepository) Create(a *model.App) error {
 		a.Rating,
 		a.AppCategory,
 		a.Token,
+		empty,
+		empty,
 	).Scan(&a.ID)
 }
 
 // GetAppToID ...
 // Получить приложение по ID
 func (ar *AppRepository) GetAppToID(a *model.App, al *model.AppLaunch, id string) error {
-
 	// Проверить формат ID
 	if err := a.ValideID(id); err != nil {
 		return err
 	}
-
 	// Запрос в бд
 	if err := ar.store.db.QueryRow(
 		`
@@ -172,4 +174,38 @@ func (ar *AppRepository) GetAllApps(l, o string) (*sql.Rows, error) {
 		LIMIT $1 
 		OFFSET $2 * 2
 	`, l, o)
+}
+
+// GetAppDataToID ...
+// Получить приложение по ID
+func (ar *AppRepository) GetAppDataToID(a *model.App, id string) error {
+	// Проверить формат ID
+	if err := a.ValideID(id); err != nil {
+		return err
+	}
+	// Запрос в бд
+	if err := ar.store.db.QueryRow(
+		`
+		SELECT app_name, app_system_name, app_id, app_state, app_category, rating, app_desc, avatar
+		FROM apps 
+		WHERE app_id = $1
+		`,
+		id,
+	).Scan(
+		&a.AppName,
+		&a.AppSystemName,
+		&a.AppID,
+		&a.AppState,
+		&a.AppCategory,
+		&a.Rating,
+		&a.AppDesc,
+		&a.Avatar,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return store.ErrRecordNotFound
+		}
+		return err
+	}
+
+	return nil
 }
