@@ -3,16 +3,20 @@ package handler
 import (
 	"database/sql"
 	"encoding/json"
+	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/PhilippZhulev/delta/internal/app/helpers"
 	"github.com/PhilippZhulev/delta/internal/app/model"
 	"github.com/PhilippZhulev/delta/internal/app/store"
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 )
 
 //Статусы
@@ -23,18 +27,20 @@ var (
 	appChanged      = "Application change"
 	appListReceived = "Application list received"
 	appReceived     = "Application received"
+	upload          = "File upload"
 )
 
 // InitApp ...
 // Протокол аунтификации
 type InitApp struct {
+	hesh    helpers.Hesh
 	respond *helpers.Respond
 	store   store.Store
 }
 
-// CreateApp ...
+// HandleCreateApp ...
 // Создать приложение
-func (ia InitApp) CreateApp(store store.Store) http.HandlerFunc {
+func (ia InitApp) HandleCreateApp(store store.Store) http.HandlerFunc {
 	// Данные запроса
 	type request struct {
 		AppSystemName string `json:"appSystemName"`
@@ -74,9 +80,9 @@ func (ia InitApp) CreateApp(store store.Store) http.HandlerFunc {
 	}
 }
 
-// RunApplication ...
+// HandleRunApplication ...
 // Активировать приложение
-func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
+func (ia InitApp) HandleRunApplication(store store.Store) http.HandlerFunc {
 	//Данные ответа
 	type response struct {
 		ID            int    `json:"id"`
@@ -111,7 +117,7 @@ func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
 			ia.respond.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-		
+
 		al.Pid = cmd.Process.Pid
 		// Записать приложение в базу
 		if err := store.App().LaunchApp(al); err != nil {
@@ -125,9 +131,9 @@ func (ia InitApp) RunApplication(store store.Store) http.HandlerFunc {
 	}
 }
 
-// StopApplication ...
+// HandleStopApplication ...
 // Активировать приложение
-func (ia InitApp) StopApplication(store store.Store) http.HandlerFunc {
+func (ia InitApp) HandleStopApplication(store store.Store) http.HandlerFunc {
 	// Данные ответа
 	type response struct {
 		State bool `json:"state"`
@@ -159,9 +165,9 @@ func (ia InitApp) StopApplication(store store.Store) http.HandlerFunc {
 	}
 }
 
-// ChangeApp ...
+// HandleChangeApp ...
 // Изменить даные приложения приложение
-func (ia InitApp) ChangeApp(store store.Store) http.HandlerFunc {
+func (ia InitApp) HandleChangeApp(store store.Store) http.HandlerFunc {
 	// Данные запроса
 	type request struct {
 		ID          string `json:"id"`
@@ -195,9 +201,9 @@ func (ia InitApp) ChangeApp(store store.Store) http.HandlerFunc {
 	}
 }
 
-// GetAppList ...
+// HandleGetAppList ...
 // Получить список приложений
-func (ia InitApp) GetAppList(store store.Store) http.HandlerFunc {
+func (ia InitApp) HandleGetAppList(store store.Store) http.HandlerFunc {
 	// Данные элемента возврата
 	type item struct {
 		AppID         string `json:"id"`
@@ -285,9 +291,9 @@ func (ia InitApp) GetAppList(store store.Store) http.HandlerFunc {
 	}
 }
 
-// GetApp ...
+// HandleGetApp ...
 // Получить данные приложения
-func (ia InitApp) GetApp(store store.Store) http.HandlerFunc {
+func (ia InitApp) HandleGetApp(store store.Store) http.HandlerFunc {
 	// Данные элемента возврата
 	type respond struct {
 		AppID         string `json:"id"`
@@ -300,9 +306,9 @@ func (ia InitApp) GetApp(store store.Store) http.HandlerFunc {
 		Avatar        string `json:"avatar"`
 	}
 
-	return func (w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		a  := &model.App{}
+		a := &model.App{}
 		// Записать приложение в базу
 		if err := store.App().GetAppDataToID(a, id); err != nil {
 			ia.respond.Error(w, r, http.StatusUnprocessableEntity, err)
@@ -321,5 +327,39 @@ func (ia InitApp) GetApp(store store.Store) http.HandlerFunc {
 		}
 		// Если все ок отправить ответ
 		ia.respond.Done(w, r, http.StatusOK, res, appReceived)
+	}
+}
+
+// HandleAddPreview ...
+// Добавить превью
+func (ia InitApp) HandleAddPreview(store store.Store) http.HandlerFunc {
+	//Ответ
+	type respond struct {
+		Size int64  `json:"size"`
+		Name string `json:"name"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Получить файл из формы
+		file, handler, err := r.FormFile("avatar")
+		if err != nil {
+			ia.respond.Done(w, r, http.StatusOK, r.Body, appReceived)
+			return
+		}
+		defer file.Close()
+		// Создать новый файл
+		name := uuid.New().String() + strings.Split(handler.Filename, ".")[1]
+		f, err := os.OpenFile("./upload/"+name, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			ia.respond.Done(w, r, http.StatusOK, r.Body, appReceived)
+			return
+		}
+		defer f.Close()
+		// Копировать содержимое файла
+		io.Copy(f, file)
+		// Собираю информацию о файле и отправляю в ответе
+		fi, err := f.Stat()
+		res := respond{fi.Size(), name}
+		ia.respond.Done(w, r, http.StatusOK, res, upload)
 	}
 }

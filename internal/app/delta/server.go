@@ -76,24 +76,35 @@ func (s *server) configureMiddleware() {
 		router.Use(s.authenticator(s.sessionStore))
 		// Диспатчер приложений
 		router.Route("/dispatch", func(route chi.Router) {
+			// POST dispatch
 			route.Post("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))
+			// PUT dispatch
 			route.Put("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))
+			// GET dispatch
 			route.Get("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))
+			// DELETE dispatch
 			route.Delete("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))
+			// OPTIONS dispatch
 			route.Options("/{port}/{param}/*", s.dispatch.HandleDispatch(s.sessionStore))
 		})
 		// Управление приложением
 		router.Route("/api/v1/app", func(route chi.Router) {
-			route.Options("/run/{port}", s.app.RunApplication(s.store))
-			route.Options("/stop/{port}", s.app.StopApplication(s.store))
-			route.Post("/", s.app.CreateApp(s.store))
-			route.Put("/", s.app.ChangeApp(s.store))
+			// Запустить приложение
+			route.Options("/run/{port}", s.app.HandleRunApplication(s.store))
+			// Остановить приложение
+			route.Options("/stop/{port}", s.app.HandleStopApplication(s.store))
+			// Создать приложение
+			route.Post("/", s.app.HandleCreateApp(s.store))
+			// Изменить приложение
+			route.Put("/", s.app.HandleChangeApp(s.store))
 			// Получить список приложений
-			route.Get("/list/{limit}/{offset}", s.app.GetAppList(s.store))
+			route.Get("/list/{limit}/{offset}", s.app.HandleGetAppList(s.store))
 			// Получить список приложений (Фильтрация)
-			route.Post("/list/{limit}/{offset}", s.app.GetAppList(s.store))
+			route.Post("/list/{limit}/{offset}", s.app.HandleGetAppList(s.store))
 			// Получить приложение
-			route.Get("/{id}", s.app.GetApp(s.store))
+			route.Get("/{id}", s.app.HandleGetApp(s.store))
+			// Получить изображение
+			route.Post("/preview/{id}", s.app.HandleAddPreview(s.store))
 		})
 		// Запросы пользователя
 		router.Route("/api/v1/user", func(route chi.Router) {
